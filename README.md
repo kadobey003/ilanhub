@@ -4,7 +4,8 @@
 
 Ukrayna pazarı için çok kanallı ilan platformu.
 
-**GitHub:** [kadobey003/ilanhub](https://github.com/kadobey003/ilanhub)
+**GitHub:** [kadobey003/ilanhub](https://github.com/kadobey003/ilanhub)  
+**Prozone:** [kadir/ilanhub](https://git.prozone.dev/kadir/ilanhub)
 
 ## Özet
 
