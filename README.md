@@ -1,11 +1,8 @@
 # İlanHub
 
-[![GitHub](https://img.shields.io/github/stars/kadobey003/ilanhub?style=social)](https://github.com/kadobey003/ilanhub)
-
 Ukrayna pazarı için çok kanallı ilan platformu.
 
-**GitHub:** [kadobey003/ilanhub](https://github.com/kadobey003/ilanhub)  
-**Prozone:** [kadir/ilanhub](https://git.prozone.dev/kadir/ilanhub)
+**Repo:** [git.prozone.dev/kadir/ilanhub](https://git.prozone.dev/kadir/ilanhub)
 
 ## Özet
 
