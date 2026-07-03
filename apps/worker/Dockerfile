@@ -6,6 +6,7 @@ FROM base AS deps
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/worker/package.json ./apps/worker/
 COPY packages/database/package.json ./packages/database/
+COPY packages/shared/package.json ./packages/shared/
 COPY packages/watermark/package.json ./packages/watermark/
 RUN pnpm install --frozen-lockfile --filter @ilanhub/worker...
 
@@ -13,12 +14,14 @@ FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/worker/node_modules ./apps/worker/node_modules
 COPY --from=deps /app/packages/database/node_modules ./packages/database/node_modules
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY --from=deps /app/packages/watermark/node_modules ./packages/watermark/node_modules
 COPY tsconfig.base.json ./
 COPY packages/database ./packages/database
+COPY packages/shared ./packages/shared
 COPY packages/watermark ./packages/watermark
 COPY apps/worker ./apps/worker
-RUN pnpm --filter @ilanhub/database build && pnpm --filter @ilanhub/watermark build && pnpm --filter @ilanhub/worker build
+RUN pnpm --filter @ilanhub/database build && pnpm --filter @ilanhub/shared build && pnpm --filter @ilanhub/watermark build && pnpm --filter @ilanhub/worker build
 
 FROM node:20-alpine AS runner
 WORKDIR /app
