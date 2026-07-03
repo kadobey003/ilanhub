@@ -65,6 +65,8 @@ services:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
       JWT_SECRET: ${JWT_SECRET:-change-me}
+      BOT_INTERNAL_SECRET: ${BOT_INTERNAL_SECRET:-dev-bot-secret}
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost}
       PORT: 3000
     depends_on:
       postgres:
@@ -98,7 +100,8 @@ services:
     ports:
       - "3001:3001"
     environment:
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      BOT_INTERNAL_SECRET: ${BOT_INTERNAL_SECRET:-dev-bot-secret}
       REDIS_URL: redis://redis:6379
       API_URL: http://api:3000
       PORT: 3001

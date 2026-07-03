@@ -2131,23 +2131,23 @@ export class AdminService {
     if (!project) throw new NotFoundException("Project not found");
 
     const isActive = dto.isActive ?? true;
-    let botUsername: string | null = null;
+    const defaultWebhook = `${this.webhookBaseUrl()}/webhooks/telegram`;
+    const webhookUrl = (dto.webhookUrl?.trim() || defaultWebhook).trim();
 
     if (dto.botToken) {
       const me = await this.telegramGetMe(dto.botToken);
-      botUsername = me.username ? `@${me.username}` : null;
-      const inputConfig: Record<string, unknown> = {
-        botToken: dto.botToken,
-        botUsername,
-      };
-      if (dto.webhookUrl) inputConfig.webhookUrl = dto.webhookUrl.trim();
+      const botUsername = me.username ? `@${me.username}` : null;
       await this.upsertTelegramChannel(
         dto.projectId,
         "listing_input",
-        inputConfig,
+        {
+          botToken: dto.botToken.trim(),
+          botUsername,
+          webhookUrl,
+        },
         isActive,
       );
-    } else if (dto.webhookUrl) {
+    } else if (dto.webhookUrl || isActive !== undefined) {
       const [existing] = await this.db
         .select()
         .from(channelConfigs)
@@ -2164,13 +2164,35 @@ export class AdminService {
         await this.upsertTelegramChannel(
           dto.projectId,
           "listing_input",
-          { ...cfg, webhookUrl: dto.webhookUrl.trim() },
+          { ...cfg, webhookUrl },
           isActive,
         );
       }
     }
 
+    await this.notifyTelegramBotReload();
     return this.getTelegramSettings(dto.projectId);
+  }
+
+  private async notifyTelegramBotReload() {
+    const secret = process.env.BOT_INTERNAL_SECRET ?? "dev-bot-secret";
+    const urls = [
+      process.env.BOT_TELEGRAM_RELOAD_URL?.trim(),
+      "http://bot-telegram:3001/reload",
+      "http://127.0.0.1:3001/reload",
+    ].filter(Boolean) as string[];
+
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "x-bot-secret": secret },
+        });
+        if (res.ok) return;
+      } catch {
+        /* try next */
+      }
+    }
   }
 
   async registerTelegramWebhook(projectId: string) {

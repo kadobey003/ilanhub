@@ -33,10 +33,14 @@ fi
 docker run --rm --network "$NET" \
   -v "$ROOT:/app" -w /app \
   -e DATABASE_URL=postgresql://ilanhub:secret@postgres:5432/ilanhub \
+  -e ADMIN_EMAIL="${ADMIN_EMAIL:-admin@ilanhub.local}" \
+  -e ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin123}" \
   node:20-alpine sh -c '
     corepack enable && corepack prepare pnpm@9.15.4 --activate
     pnpm install --filter @ilanhub/database...
     pnpm db:push
+    pnpm db:seed
+    pnpm db:seed-admin
   '
 
 echo "==> Start all services"

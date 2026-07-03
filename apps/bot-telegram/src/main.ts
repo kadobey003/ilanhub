@@ -45,8 +45,7 @@ async function fetchTokenFromApi(): Promise<TokenFetchResult> {
     if (token) return { ok: true, token, source: "api" };
     return {
       ok: false,
-      reason:
-        "API has no telegram botToken — save token in admin (Telegram channel) or set TELEGRAM_BOT_TOKEN",
+      reason: "API has no telegram botToken — save token in admin /telegram",
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -57,7 +56,8 @@ async function fetchTokenFromApi(): Promise<TokenFetchResult> {
 async function resolveToken(options?: {
   allowEnvFallback?: boolean;
   retries?: number;
-}): Promise<string> {
+  required?: boolean;
+}): Promise<string | null> {
   const envToken = process.env.TELEGRAM_BOT_TOKEN?.trim();
   const retries = options?.retries ?? TOKEN_RETRIES;
   const attempts: string[] = [];
@@ -82,34 +82,61 @@ async function resolveToken(options?: {
     return envToken;
   }
 
+  if (options?.required === false) {
+    console.warn(
+      "bot-telegram: no token yet — waiting for admin panel save (/reload)",
+    );
+    return null;
+  }
+
   throw new Error(
     [
       "TELEGRAM_BOT_TOKEN is required (admin panel or .env).",
       `API_URL=${API_URL}`,
-      `BOT_INTERNAL_SECRET must match API (${BOT_SECRET === "dev-bot-secret" ? "default dev secret" : "custom"})`,
       "Attempts:",
       ...attempts,
     ].join("\n"),
   );
 }
 
-let currentToken = await resolveToken();
-let bot = new Bot(currentToken);
-registerHandlers(bot);
-let handleUpdate = webhookCallback(bot, "http");
+let currentToken: string | null = null;
+let bot: Bot | null = null;
+let handleUpdate: ReturnType<typeof webhookCallback> | null = null;
 
-async function reloadToken(): Promise<{ changed: boolean; tokenSource: string }> {
-  const next = await resolveToken({ allowEnvFallback: true, retries: 3 });
-  if (next === currentToken) {
-    return { changed: false, tokenSource: "unchanged" };
-  }
-  currentToken = next;
-  bot = new Bot(currentToken);
+function applyToken(token: string) {
+  currentToken = token;
+  bot = new Bot(token);
   registerHandlers(bot);
   handleUpdate = webhookCallback(bot, "http");
-  console.log("bot-telegram: token reloaded from API/env");
-  return { changed: true, tokenSource: "api-or-env" };
 }
+
+async function reloadToken(): Promise<{
+  changed: boolean;
+  ready: boolean;
+  tokenSource: string;
+}> {
+  const next = await resolveToken({
+    allowEnvFallback: true,
+    retries: 3,
+    required: false,
+  });
+  if (!next) {
+    return { changed: false, ready: false, tokenSource: "none" };
+  }
+  if (next === currentToken && bot) {
+    return { changed: false, ready: true, tokenSource: "unchanged" };
+  }
+  applyToken(next);
+  console.log("bot-telegram: token loaded from admin API");
+  return { changed: true, ready: true, tokenSource: "api-or-env" };
+}
+
+const initial = await resolveToken({
+  allowEnvFallback: true,
+  retries: 5,
+  required: false,
+});
+if (initial) applyToken(initial);
 
 const WEBHOOK_PATHS = new Set(["/webhook", "/webhooks/telegram"]);
 
@@ -118,7 +145,13 @@ const server = createServer(async (req, res) => {
 
   if (req.method === "GET" && path === "/health") {
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ status: "ok", service: "bot-telegram" }));
+    res.end(
+      JSON.stringify({
+        status: "ok",
+        service: "bot-telegram",
+        ready: Boolean(bot),
+      }),
+    );
     return;
   }
 
@@ -142,6 +175,11 @@ const server = createServer(async (req, res) => {
   }
 
   if (req.method === "POST" && WEBHOOK_PATHS.has(path)) {
+    if (!handleUpdate) {
+      res.writeHead(503, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Bot token not configured" }));
+      return;
+    }
     try {
       await handleUpdate(req, res);
     } catch (err) {
@@ -159,5 +197,21 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`bot-telegram webhook server on :${PORT} (token from admin API)`);
+  console.log(
+    `bot-telegram webhook server on :${PORT} (token ${bot ? "ready" : "pending admin"})`,
+  );
 });
+
+// Poll admin API periodically until token appears
+if (!bot) {
+  void (async () => {
+    while (!bot) {
+      await sleep(10_000);
+      try {
+        await reloadToken();
+      } catch {
+        /* keep waiting */
+      }
+    }
+  })();
+}
