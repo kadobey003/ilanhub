@@ -22,8 +22,6 @@ services:
 
   worker:
     restart: always
-    deploy:
-      replicas: 2
 
   bot-telegram:
     restart: always
