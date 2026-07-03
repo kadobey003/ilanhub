@@ -32,4 +32,4 @@ COPY --from=build --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.n
 USER nextjs
 EXPOSE 3004
 ENV PORT=3004
-CMD ["node", "apps/web/server.js"]
+CMD ["node", "server.js"]

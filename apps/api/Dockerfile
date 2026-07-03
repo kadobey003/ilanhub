@@ -36,6 +36,7 @@ ENV NODE_ENV=production
 COPY --from=build /app/apps/api/dist ./dist
 COPY --from=build /app/apps/api/package.json ./
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api/node_modules ./node_modules
 COPY --from=build /app/packages/database/dist ./node_modules/@ilanhub/database/dist
 COPY --from=build /app/packages/database/package.json ./node_modules/@ilanhub/database/
 COPY --from=build /app/packages/shared/dist ./node_modules/@ilanhub/shared/dist

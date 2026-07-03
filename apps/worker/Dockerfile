@@ -30,4 +30,5 @@ COPY --from=build /app/apps/worker/dist ./dist
 COPY --from=build /app/packages/watermark/assets ./node_modules/@ilanhub/watermark/assets
 COPY --from=build /app/apps/worker/package.json ./
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/worker/node_modules ./node_modules
 CMD ["node", "dist/main.js"]
