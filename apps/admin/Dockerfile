@@ -16,7 +16,9 @@ COPY tsconfig.base.json ./
 COPY packages/i18n ./packages/i18n
 COPY apps/admin ./apps/admin
 ARG VITE_API_URL=/api
+ARG VITE_BASE=/admin/
 ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_BASE=$VITE_BASE
 RUN pnpm --filter @ilanhub/i18n build && pnpm --filter @ilanhub/admin build
 
 FROM nginx:alpine AS runner
