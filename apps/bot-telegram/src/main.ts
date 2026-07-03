@@ -101,13 +101,15 @@ async function resolveToken(options?: {
 
 let currentToken: string | null = null;
 let bot: Bot | null = null;
-let handleUpdate: ReturnType<typeof webhookCallback> | null = null;
+// grammy webhookCallback overload is wide; keep runtime handler only
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let handleUpdate: ((req: any, res: any) => Promise<void>) | null = null;
 
 function applyToken(token: string) {
   currentToken = token;
   bot = new Bot(token);
   registerHandlers(bot);
-  handleUpdate = webhookCallback(bot, "http");
+  handleUpdate = webhookCallback(bot, "http") as (req: any, res: any) => Promise<void>;
 }
 
 async function reloadToken(): Promise<{
