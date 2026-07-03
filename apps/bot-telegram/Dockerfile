@@ -11,6 +11,9 @@ RUN pnpm install --frozen-lockfile --filter @ilanhub/bot-telegram...
 
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/bot-telegram/node_modules ./apps/bot-telegram/node_modules
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY --from=deps /app/packages/i18n/node_modules ./packages/i18n/node_modules
 COPY tsconfig.base.json ./
 COPY packages/shared ./packages/shared
 COPY packages/i18n ./packages/i18n

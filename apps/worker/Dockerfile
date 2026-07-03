@@ -11,6 +11,9 @@ RUN pnpm install --frozen-lockfile --filter @ilanhub/worker...
 
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/worker/node_modules ./apps/worker/node_modules
+COPY --from=deps /app/packages/database/node_modules ./packages/database/node_modules
+COPY --from=deps /app/packages/watermark/node_modules ./packages/watermark/node_modules
 COPY tsconfig.base.json ./
 COPY packages/database ./packages/database
 COPY packages/watermark ./packages/watermark

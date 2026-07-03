@@ -10,6 +10,8 @@ RUN pnpm install --frozen-lockfile --filter @ilanhub/admin...
 
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/admin/node_modules ./apps/admin/node_modules
+COPY --from=deps /app/packages/i18n/node_modules ./packages/i18n/node_modules
 COPY tsconfig.base.json ./
 COPY packages/i18n ./packages/i18n
 COPY apps/admin ./apps/admin
