@@ -5,6 +5,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: "standalone",
   webpack: (config, { dev }) => {
     // Windows: persistent webpack cache can corrupt .next (ENOENT manifest / chunk errors).
     if (dev) {
