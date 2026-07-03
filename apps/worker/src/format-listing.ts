@@ -1,7 +1,7 @@
 import {
   formatHorecaPostHtml,
   parseStoredPosition,
-} from "../../../packages/shared/dist/format-horeca-post.js";
+} from "@ilanhub/shared";
 import type { ListingPublishContext } from "./publishers/types.js";
 
 export function formatTelegramListing(ctx: ListingPublishContext): string {
