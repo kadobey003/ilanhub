@@ -1,0 +1,20 @@
+{
+  "name": "@ilanhub/i18n",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc && node --input-type=module -e \"import { cpSync } from 'node:fs'; cpSync('src/locales', 'dist/locales', { recursive: true })\""
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "name": "ilanhub",
+  "private": true,
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "dev:api": "pnpm --filter @ilanhub/api dev",
+    "dev:admin": "pnpm --filter @ilanhub/admin dev",
+    "dev:web": "pnpm --filter @ilanhub/web dev",
+    "dev:web:clean": "node apps/web/scripts/clean-next.mjs && pnpm dev:web",
+    "dev:web:clean": "powershell -ExecutionPolicy Bypass -File scripts/dev-web.ps1",
+    "dev:worker": "pnpm --filter @ilanhub/worker dev",
+    "dev:bot-telegram": "pnpm --filter @ilanhub/bot-telegram dev",
+    "dev:bot-viber": "pnpm --filter @ilanhub/bot-viber dev",
+    "dev:bot-whatsapp": "pnpm --filter @ilanhub/bot-whatsapp dev",
+    "dev:bots": "pnpm --parallel --filter @ilanhub/bot-telegram --filter @ilanhub/bot-viber --filter @ilanhub/bot-whatsapp dev",
+    "dev:apps": "pnpm --parallel --filter @ilanhub/api --filter @ilanhub/admin --filter @ilanhub/web --filter @ilanhub/worker dev",
+    "db:generate": "pnpm --filter @ilanhub/database generate",
+    "db:migrate": "pnpm --filter @ilanhub/database migrate",
+    "db:push": "pnpm --filter @ilanhub/database push",
+    "db:studio": "pnpm --filter @ilanhub/database studio",
+    "db:seed": "pnpm --filter @ilanhub/database seed",
+    "db:seed-admin": "pnpm --filter @ilanhub/database seed-admin",
+    "tunnel": "powershell -ExecutionPolicy Bypass -File scripts/cloudflare-tunnel.ps1",
+    "setup:local": "powershell -ExecutionPolicy Bypass -File scripts/setup-local-tunnel.ps1"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3"
+  },
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=20"
+  },
+  "pnpm": {
+    "overrides": {
+      "ioredis": "5.11.1"
+    }
+  }
+}

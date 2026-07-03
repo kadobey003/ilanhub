@@ -1,0 +1,34 @@
+{
+  "name": "@ilanhub/api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "cross-env PORT=3010 nest start --watch",
+    "build": "nest build",
+    "start": "node dist/main.js"
+  },
+    "dependencies": {
+    "@ilanhub/database": "workspace:*",
+    "@ilanhub/payments": "workspace:*",
+    "@ilanhub/shared": "workspace:*",
+    "@ilanhub/watermark": "workspace:*",
+    "@nestjs/common": "^11.1.3",
+    "@nestjs/core": "^11.1.3",
+    "@nestjs/platform-express": "^11.1.3",
+    "bullmq": "^5.56.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "drizzle-orm": "^0.44.2",
+    "ioredis": "^5.6.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.7",
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.15.32",
+    "cross-env": "^7.0.3",
+    "typescript": "^5.8.3"
+  }
+}

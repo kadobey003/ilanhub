@@ -11,7 +11,7 @@
 | Para birimi | UAH (₴) |
 | Stack | NestJS, Next.js, React Admin, Docker |
 | Monorepo | Turborepo + pnpm |
-| DB kararı | **Kenan belirleyecek** |
+| DB | **PostgreSQL 16 + Drizzle ORM** |
 
 ### Kanal Matrisi
 
@@ -147,9 +147,9 @@ Sıralama: Pin → boostScore → publishedAt
 
 ---
 
-## 7. Veritabanı (Kenan Belirleyecek)
+## 7. Veritabanı
 
-**Seçenekler:** Drizzle+PostgreSQL, TypeORM+PostgreSQL, Supabase, MongoDB
+**Karar:** PostgreSQL 16 + Drizzle ORM (`packages/database`)
 
 ### Temel Entity'ler
 - Project, Category, Region, City
@@ -226,15 +226,15 @@ ilanhub/
 
 ## 12. Yapılacaklar
 
-- [ ] Kenan: ORM/DB seçimi
-- [ ] Monorepo scaffold
-- [ ] Docker Compose dev
-- [ ] API core modülleri
-- [ ] Premium web UI
-- [ ] Telegram bot
-- [ ] Viber + WhatsApp botları
+- [x] ORM/DB: PostgreSQL + Drizzle
+- [x] Monorepo scaffold
+- [x] Docker Compose dev
+- [x] API core modülleri
+- [x] Premium web UI (iskelet)
+- [x] Telegram bot (iskelet)
+- [x] Viber + WhatsApp botları (iskelet)
 - [ ] Instagram yayın
-- [ ] Monopay + LiqPay + havale
+- [ ] Monopay + LiqPay + havale (entegrasyon)
 - [ ] Şehir filtreleri
 - [ ] Abonelik paketleri
 - [ ] VIP boost

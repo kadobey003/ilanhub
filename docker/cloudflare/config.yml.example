@@ -1,0 +1,16 @@
+# Cloudflare Tunnel — örnek (Zero Trust > Networks > Tunnels)
+#
+# 1. cloudflare.com → Zero Trust → Networks → Tunnels → Create
+# 2. Public Hostname: dev.ilanhub.com → http://nginx:80 (Docker içi)
+#    veya lokal: http://host.docker.internal:80
+# 3. Token'ı .env → CLOUDFLARE_TUNNEL_TOKEN
+#
+# Alternatif: credentials.json indir → docker/cloudflare/ klasörüne koy
+
+tunnel: REPLACE_WITH_TUNNEL_ID
+credentials-file: /etc/cloudflared/credentials.json
+
+ingress:
+  - hostname: dev.ilanhub.com
+    service: http://nginx:80
+  - service: http_status:404

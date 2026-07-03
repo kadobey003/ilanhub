@@ -1,0 +1,209 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ilanhub-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ilanhub
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: ilanhub
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ilanhub -d ilanhub"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: ilanhub-redis
+    restart: unless-stopped
+    ports:
+      - "6450:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: ilanhub-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: ilanhub-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://ilanhub:secret@postgres:5432/ilanhub
+      REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      JWT_SECRET: ${JWT_SECRET:-change-me}
+      PORT: 3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    container_name: ilanhub-worker
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://ilanhub:secret@postgres:5432/ilanhub
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+
+  bot-telegram:
+    build:
+      context: .
+      dockerfile: apps/bot-telegram/Dockerfile
+    container_name: ilanhub-bot-telegram
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      REDIS_URL: redis://redis:6379
+      API_URL: http://api:3000
+      PORT: 3001
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+
+  bot-viber:
+    build:
+      context: .
+      dockerfile: apps/bot-viber/Dockerfile
+    container_name: ilanhub-bot-viber
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+    environment:
+      VIBER_AUTH_TOKEN: ${VIBER_AUTH_TOKEN}
+      REDIS_URL: redis://redis:6379
+      API_URL: http://api:3000
+      PORT: 3002
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+
+  bot-whatsapp:
+    build:
+      context: .
+      dockerfile: apps/bot-whatsapp/Dockerfile
+    container_name: ilanhub-bot-whatsapp
+    restart: unless-stopped
+    ports:
+      - "3003:3003"
+    environment:
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-ilanhub}
+      REDIS_URL: redis://redis:6379
+      API_URL: http://api:3000
+      PORT: 3003
+    depends_on:
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+      args:
+        VITE_API_URL: /api
+    container_name: ilanhub-admin
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    depends_on:
+      api:
+        condition: service_started
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: ilanhub-web
+    restart: unless-stopped
+    ports:
+      - "3004:3004"
+    environment:
+      API_URL: http://api:3000
+      PORT: 3004
+    depends_on:
+      api:
+        condition: service_started
+
+  nginx:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    container_name: ilanhub-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+      - admin
+      - web
+      - bot-telegram
+      - bot-viber
+      - bot-whatsapp
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: ilanhub-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - nginx
+    profiles:
+      - tunnel
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

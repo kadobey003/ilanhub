@@ -3,6 +3,7 @@ dist/
 build/
 .next/
 .turbo/
+.local/
 .env
 .env.local
 *.log
