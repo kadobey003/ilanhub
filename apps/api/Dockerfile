@@ -30,21 +30,15 @@ RUN pnpm --filter @ilanhub/database build && \
     pnpm --filter @ilanhub/watermark build && \
     pnpm --filter @ilanhub/api build
 
+FROM base AS deploy
+COPY --from=build /app /app
+WORKDIR /app
+RUN pnpm deploy --filter=@ilanhub/api --prod /out
+
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=build /app/apps/api/dist ./dist
-COPY --from=build /app/apps/api/package.json ./
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/api/node_modules ./node_modules
-COPY --from=build /app/packages/database/dist ./node_modules/@ilanhub/database/dist
-COPY --from=build /app/packages/database/package.json ./node_modules/@ilanhub/database/
-COPY --from=build /app/packages/shared/dist ./node_modules/@ilanhub/shared/dist
-COPY --from=build /app/packages/shared/package.json ./node_modules/@ilanhub/shared/
-COPY --from=build /app/packages/payments/dist ./node_modules/@ilanhub/payments/dist
-COPY --from=build /app/packages/payments/package.json ./node_modules/@ilanhub/payments/
-COPY --from=build /app/packages/watermark/dist ./node_modules/@ilanhub/watermark/dist
-COPY --from=build /app/packages/watermark/package.json ./node_modules/@ilanhub/watermark/
+COPY --from=deploy /out/ .
 COPY --from=build /app/packages/watermark/assets ./node_modules/@ilanhub/watermark/assets
 EXPOSE 3000
 CMD ["node", "dist/main.js"]
