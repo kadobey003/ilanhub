@@ -1,6 +1,6 @@
 # İlanHub — Mimari Plan
 
-> **Repo:** [git.prozone.dev/kadir/ilanhub](https://git.prozone.dev/kadir/ilanhub)
+> **Repo:** [github.com/kadobey003/ilanhub](https://github.com/kadobey003/ilanhub)
 
 ## 1. Genel Bakış
 
