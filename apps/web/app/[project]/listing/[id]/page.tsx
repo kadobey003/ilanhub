@@ -1,8 +1,16 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { HorecaListingView } from "@/components/horeca/HorecaListingView";
+import { ListingDetailLayout } from "@/components/listing/ListingDetailLayout";
+import { ListingEngagement } from "@/components/listing/ListingEngagement";
+import { RelatedListingsSidebar } from "@/components/listing/RelatedListingsSidebar";
 import { ListingAnalytics } from "@/components/ListingAnalytics";
-import { fetchListingDetail, isHorecaProject } from "@/lib/listings-api";
+import {
+  fetchListingDetail,
+  fetchListingEngagement,
+  fetchProjectListings,
+  isVacancyStyleProject,
+} from "@/lib/listings-api";
 
 export async function generateMetadata({
   params,
@@ -24,31 +32,60 @@ export default async function ListingDetailPage({
   params: Promise<{ project: string; id: string }>;
 }) {
   const { project, id } = await params;
-  const listing = await fetchListingDetail(id);
+  const [listing, engagement, relatedListings] = await Promise.all([
+    fetchListingDetail(id),
+    fetchListingEngagement(id),
+    fetchProjectListings(project),
+  ]);
 
   if (!listing) {
     notFound();
   }
 
-  if (isHorecaProject(project) || isHorecaProject(listing.projectSlug)) {
+  const sidebar = (
+    <RelatedListingsSidebar
+      listings={relatedListings}
+      project={project}
+      currentId={listing.id}
+    />
+  );
+
+  if (isVacancyStyleProject(project) || isVacancyStyleProject(listing.projectSlug ?? "")) {
     return (
       <div className="py-6 sm:py-10">
         <ListingAnalytics listingId={listing.id} projectId={listing.projectId} />
-        <HorecaListingView listing={listing} />
+        <ListingDetailLayout
+          main={<HorecaListingView listing={listing} engagement={engagement} />}
+          sidebar={sidebar}
+        />
       </div>
     );
   }
 
   return (
-    <>
+    <div className="py-6 sm:py-10">
       <ListingAnalytics listingId={listing.id} projectId={listing.projectId} />
-      <article className="mx-auto max-w-2xl rounded-lg border bg-white p-6">
-      <h1 className="mb-4 text-2xl font-bold">{listing.title}</h1>
-      {listing.price != null && (
-        <p className="mb-4 text-xl font-semibold text-brand">{listing.price} ₴</p>
-      )}
-      <p className="whitespace-pre-wrap text-gray-700">{listing.description}</p>
-    </article>
-    </>
+      <ListingDetailLayout
+        main={
+          <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+            <h1 className="mb-4 text-2xl font-bold">{listing.title}</h1>
+            {listing.price != null && (
+              <p className="mb-4 text-xl font-semibold text-brand">
+                {listing.price} ₴
+              </p>
+            )}
+            <p className="whitespace-pre-wrap text-gray-700">
+              {listing.description}
+            </p>
+            <ListingEngagement
+              listingId={listing.id}
+              projectId={listing.projectId}
+              initial={engagement}
+            />
+          </article>
+        }
+        sidebar={sidebar}
+      />
+    </div>
   );
 }

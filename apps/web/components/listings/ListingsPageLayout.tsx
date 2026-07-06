@@ -2,7 +2,8 @@ import Link from "next/link";
 import { ListingsBrowser } from "./ListingsBrowser";
 import { Button } from "@/components/ui/Button";
 import { getProjectMeta } from "@/lib/project-meta";
-import type { CityOption } from "@/lib/cities";
+import { projectAllListingsPath, type CityOption } from "@/lib/cities";
+
 import type { ProjectBrowseMeta, PublicListingSummary } from "@/lib/listings-types";
 
 interface Props {
@@ -23,7 +24,7 @@ export function ListingsPageLayout({
   cityName,
 }: Props) {
   const meta = getProjectMeta(project);
-  const allHref = `/${project}`;
+  const allHref = projectAllListingsPath(project);
   const countLabel =
     listings.length === 0
       ? "немає"

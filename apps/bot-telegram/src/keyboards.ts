@@ -41,6 +41,8 @@ export function buildMainMenuKeyboard(menu: BotMenuConfig): InlineKeyboard {
     kb.row().text(menu.channelsLabel, "action:channels");
   }
 
+  kb.row().text(i18n.bot.browseJobsBtn, "action:browse_jobs");
+
   return kb;
 }
 
@@ -78,6 +80,15 @@ export function categoryKeyboard(projects: ApiProject[]): InlineKeyboard {
   });
   kb.row().text(i18n.bot.cancel, "action:cancel");
   return kb;
+}
+
+export function jobsModeKeyboard(): InlineKeyboard {
+  return new InlineKeyboard()
+    .text(i18n.bot.postVacancy, "action:jobs_post")
+    .row()
+    .text(i18n.bot.browseJobsBtn, "action:browse_jobs")
+    .row()
+    .text(i18n.bot.cancel, "action:cancel");
 }
 
 export function horecaCategoryKeyboard(categories: ApiCategory[]): InlineKeyboard {

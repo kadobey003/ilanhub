@@ -1,4 +1,5 @@
 import type {
+  ListingEngagement,
   ProjectBrowseMeta,
   PublicListingDetail,
   PublicListingSummary,
@@ -22,6 +23,22 @@ export async function fetchProjectListings(
   }
 }
 
+export async function fetchListingEngagement(
+  id: string,
+): Promise<ListingEngagement> {
+  const empty: ListingEngagement = { views: 0, likes: 0, comments: [] };
+  try {
+    const res = await fetch(`${API_URL}/api/listings/${id}/engagement`, {
+      next: { revalidate: 30 },
+    });
+    if (!res.ok) return empty;
+    const json = await res.json();
+    return json.data ?? empty;
+  } catch {
+    return empty;
+  }
+}
+
 export async function fetchListingDetail(
   id: string,
 ): Promise<PublicListingDetail | null> {
@@ -39,6 +56,10 @@ export async function fetchListingDetail(
 
 export function isHorecaProject(slug: string): boolean {
   return slug === "horeca";
+}
+
+export function isVacancyStyleProject(slug: string): boolean {
+  return slug === "horeca" || slug === "jobs";
 }
 
 export async function fetchProjectBrowseMeta(

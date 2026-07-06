@@ -13,6 +13,7 @@ import {
   type Database,
 } from "@ilanhub/database";
 import { createPublishers } from "./publishers/index.js";
+import { resolveProjectPublicUrl } from "./resolve-project-public-url.js";
 import type { ListingPublishContext } from "./publishers/types.js";
 
 export class PublishService {
@@ -53,6 +54,11 @@ export class PublishService {
       .where(eq(listingMedia.listingId, listingId))
       .orderBy(asc(listingMedia.sortOrder));
 
+    const publicBaseUrl = await resolveProjectPublicUrl(
+      this.db,
+      row.listing.projectId,
+    );
+
     return {
       listing: row.listing,
       positions,
@@ -61,6 +67,7 @@ export class PublishService {
       category: { name: row.category.name },
       city: row.city ? { name: row.city.name } : null,
       district: row.district ? { name: row.district.name } : null,
+      publicBaseUrl,
     };
   }
 

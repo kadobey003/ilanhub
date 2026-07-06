@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { projectAllListingsPath } from "@/lib/cities";
 import { getProjectMeta } from "@/lib/project-meta";
 
 interface Props {
@@ -26,7 +27,7 @@ export function ListingsEmptyState({ project, cityName }: Props) {
           Подати оголошення
         </Button>
         {cityName && (
-          <Button href={`/${project}`} variant="outline" size="lg" className="w-full sm:w-auto">
+          <Button href={projectAllListingsPath(project)} variant="outline" size="lg" className="w-full sm:w-auto">
             Усі міста
           </Button>
         )}

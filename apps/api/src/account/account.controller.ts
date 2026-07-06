@@ -61,4 +61,19 @@ export class AccountController {
   ) {
     return this.accountService.createHorecaListing(req.userId, dto);
   }
+
+  @Get("projects/:projectId/jobs/category")
+  async jobsCategory(@Param("projectId") projectId: string) {
+    const category = await this.accountService.resolveJobsCategory(projectId);
+    if (!category) throw new NotFoundException("Category not found");
+    return { data: category };
+  }
+
+  @Post("listings/jobs")
+  createJobsListing(
+    @Req() req: { userId: string },
+    @Body() dto: CreateWebHorecaListingDto,
+  ) {
+    return this.accountService.createJobsListing(req.userId, dto);
+  }
 }

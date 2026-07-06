@@ -35,7 +35,7 @@ export default async function HorecaPage() {
           highlight="Кафе. Готелі."
           subtitle="Окремий напрям від загальної роботи. Спеціалізовані категорії, канали та аудиторія для індустрії гостинності."
           primaryCta="Вакансії Horeca"
-          primaryHref="/horeca/kyiv/ogoloshennya"
+          primaryHref="/horeca/ogoloshennya"
           secondaryCta="Подати вакансію"
           secondaryHref="/create?project=horeca"
           gradient="from-amber-500 via-orange-500 to-red-600"
@@ -64,7 +64,7 @@ export default async function HorecaPage() {
               <p className="mt-1 text-sm text-slate-600">Як у Telegram-каналі — з фото та деталями</p>
             </div>
             <Link
-              href="/horeca/kyiv/ogoloshennya"
+              href="/horeca/ogoloshennya"
               className="text-sm font-semibold text-amber-700 hover:text-amber-800"
             >
               Усі →

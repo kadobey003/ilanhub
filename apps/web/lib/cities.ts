@@ -45,3 +45,7 @@ export function cityDisplayName(slug: string): string {
 export function cityListingsPath(project: string, citySlug: string): string {
   return `/${project}/${normalizeCitySlug(citySlug)}/ogoloshennya`;
 }
+
+export function projectAllListingsPath(project: string): string {
+  return `/${project}/ogoloshennya`;
+}

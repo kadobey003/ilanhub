@@ -586,6 +586,22 @@ export const siteBranding = pgTable("site_branding", {
     .defaultNow(),
 });
 
+export const listingComments = pgTable(
+  "listing_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    listingId: uuid("listing_id")
+      .notNull()
+      .references(() => listings.id, { onDelete: "cascade" }),
+    authorName: varchar("author_name", { length: 100 }).notNull(),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("listing_comments_listing_idx").on(t.listingId)],
+);
+
 export const dailyStats = pgTable(
   "daily_stats",
   {

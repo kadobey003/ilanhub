@@ -25,7 +25,7 @@ const META: Record<string, ProjectMeta> = {
   horeca: {
     slug: "horeca",
     title: "Horeca",
-    subtitle: "Ресторани, кафе, бари та готелі",
+    subtitle: "Вакансії по всій Україні — ресторани, кафе, бари та готелі",
     badge: "🍽️ HoReCa",
     emoji: "🍽️",
     gradient: "from-amber-500 via-orange-500 to-red-600",

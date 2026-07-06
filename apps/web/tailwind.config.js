@@ -12,6 +12,7 @@ module.exports = {
       animation: {
         "fade-in": "fadeIn 0.6s ease-out forwards",
         float: "float 6s ease-in-out infinite",
+        shimmer: "shimmer 3s ease-in-out infinite",
       },
       keyframes: {
         fadeIn: {
@@ -21,6 +22,10 @@ module.exports = {
         float: {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-8px)" },
+        },
+        shimmer: {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.85" },
         },
       },
     },

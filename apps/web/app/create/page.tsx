@@ -1,5 +1,6 @@
 import { ListingWizard } from "@/components/ListingWizard";
 import { HorecaWizard } from "@/components/horeca/HorecaWizard";
+import { JobsWizard } from "@/components/jobs/JobsWizard";
 import Link from "next/link";
 
 export default async function CreateListingPage({
@@ -14,6 +15,7 @@ export default async function CreateListingPage({
     auto: "Авто",
   };
   const isHoreca = !project || project === "horeca";
+  const isJobs = project === "jobs";
 
   return (
     <div className="mx-auto max-w-xl px-4 py-8 sm:py-12">
@@ -32,6 +34,8 @@ export default async function CreateListingPage({
       <div className="mt-8 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
         {isHoreca ? (
           <HorecaWizard />
+        ) : isJobs ? (
+          <JobsWizard />
         ) : (
           <ListingWizard initialProjectSlug={project} />
         )}

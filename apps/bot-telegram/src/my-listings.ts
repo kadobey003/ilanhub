@@ -1,14 +1,25 @@
 import type { Context } from "grammy";
 import { i18n } from "@ilanhub/i18n";
 import type { ApiListing } from "@ilanhub/shared";
-import { formatAmountUah, formatHorecaPostHtml, parseStoredPosition } from "@ilanhub/shared";
+import {
+  buildListingUrl,
+  formatAmountUah,
+  formatHorecaPostHtml,
+  formatJobsPostHtml,
+  parseStoredPosition,
+} from "@ilanhub/shared";
 import { api } from "./api.js";
+import { getSiteBaseUrl } from "./bot-menu.js";
 import { replyOrEditText } from "./messaging.js";
-import { listingActionsKeyboard, listingPreviewKeyboard, myListingsKeyboard, paymentPendingKeyboard } from "./keyboards.js";
-import { parseDescriptionMeta, startEditExistingListing } from "./horeca-flow.js";
+import {
+  listingActionsKeyboard,
+  listingPreviewKeyboard,
+  myListingsKeyboard,
+  paymentPendingKeyboard,
+} from "./keyboards.js";
+import { parseDescriptionMeta, startEditExistingListing as startEditHorecaListing } from "./horeca-flow.js";
+import { startEditExistingListing as startEditJobsListing } from "./jobs-flow.js";
 import { sendListingPaymentInvoice } from "./payments.js";
-
-const SITE_URL = process.env.PUBLIC_URL ?? "https://ilanhub.com";
 
 const STATUS_LABELS = i18n.bot.myListingsStatus as Record<string, string>;
 
@@ -66,15 +77,21 @@ async function showPublishedListingPreview(
     };
   });
 
-  const postHtml = formatHorecaPostHtml({
+  const baseUrl = await getSiteBaseUrl();
+  const projectSlug = listing.projectSlug ?? "horeca";
+  const postInput = {
     businessType: data.businessType ?? undefined,
     title: data.title,
     address: data.address ?? undefined,
     benefits: meta.benefits,
     contactPhone: data.contactPhone ?? undefined,
     positions,
-    siteUrl: `${SITE_URL}/${listing.projectSlug ?? "horeca"}/listing/${listing.id}`,
-  });
+    siteUrl: buildListingUrl(baseUrl, projectSlug, listing.id),
+  };
+  const postHtml =
+    projectSlug === "jobs"
+      ? formatJobsPostHtml(postInput)
+      : formatHorecaPostHtml(postInput);
 
   const markup = listingPreviewKeyboard(listing);
   const photoRef = data.mediaUrls[0];
@@ -87,7 +104,7 @@ async function showPublishedListingPreview(
         reply_markup: markup,
       });
     } else {
-      await ctx.replyWithPhoto(photo, { caption: i18n.bot.horeca.preview });
+      await ctx.replyWithPhoto(photo, { caption: i18n.bot[projectSlug === "jobs" ? "jobs" : "horeca"].preview });
       await ctx.reply(postHtml, { parse_mode: "HTML", reply_markup: markup });
     }
     return;
@@ -154,7 +171,11 @@ export async function handleMyListingAction(
 
   if (action === "edit") {
     await ctx.answerCallbackQuery();
-    await startEditExistingListing(ctx, userId, listing.id);
+    if (listing.projectSlug === "jobs") {
+      await startEditJobsListing(ctx, userId, listing.id);
+    } else {
+      await startEditHorecaListing(ctx, userId, listing.id);
+    }
     return;
   }
 

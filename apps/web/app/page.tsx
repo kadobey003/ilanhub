@@ -2,16 +2,27 @@ import { HomeRedirect } from "@/components/HomeRedirect";
 import { Hero } from "@/components/landing/Hero";
 import { FeatureGrid } from "@/components/landing/FeatureGrid";
 import { CTASection } from "@/components/landing/CTASection";
+import { TelegramChannelsShowcase } from "@/components/landing/TelegramChannelsShowcase";
 import {
   VerticalCards,
   StatsBar,
   CompareNote,
 } from "@/components/landing/VerticalCards";
+import { fetchTelegramChannels } from "@/lib/site-api";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const { channels, totalMembers } = await fetchTelegramChannels();
+
   return (
     <div className="md:mx-auto md:max-w-6xl md:px-6">
       <HomeRedirect />
+
+      <div className="px-4 pt-4 md:px-0 md:pt-6">
+        <TelegramChannelsShowcase
+          channels={channels}
+          totalMembers={totalMembers}
+        />
+      </div>
 
       <div className="animate-fade-in md:py-12">
         <Hero

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type {
   BrowseCategory,
   BrowseTelegramChannel,
@@ -12,6 +13,7 @@ import { HorecaListingCard } from "@/components/horeca/HorecaListingCard";
 import { ListingsEmptyState } from "./ListingsEmptyState";
 import { TelegramBrowseBanner } from "./TelegramBrowseBanner";
 import { isHorecaProject } from "@/lib/listings-api";
+import { cityListingsPath } from "@/lib/cities";
 import type { CityOption } from "@/lib/cities";
 
 type SortKey = "newest" | "oldest" | "vacancies";
@@ -62,6 +64,7 @@ export function ListingsBrowser({
   cityName,
   allHref,
 }: Props) {
+  const router = useRouter();
   const horeca = isHorecaProject(project);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
@@ -119,9 +122,28 @@ export function ListingsBrowser({
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6">
       <section className="py-6">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Місто
-        </h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Місто
+          </h2>
+          {cities.length > 0 && (
+            <select
+              value={citySlug ?? ""}
+              onChange={(e) => {
+                const slug = e.target.value;
+                router.push(slug ? cityListingsPath(project, slug) : allHref);
+              }}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium outline-none focus:border-brand sm:hidden"
+            >
+              <option value="">Усі міста</option>
+              {cities.map((city) => (
+                <option key={city.slug} value={city.slug}>
+                  {city.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
         <CityChips
           project={project}
           cities={cities}

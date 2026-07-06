@@ -35,6 +35,14 @@ export async function getBotMenu(): Promise<BotMenuData> {
   }
 }
 
+export async function getSiteBaseUrl(): Promise<string> {
+  const { menu } = await getBotMenu();
+  return (
+    menu.siteUrl.replace(/\/$/, "") ||
+    (process.env.PUBLIC_URL ?? "https://ilanhub.com").replace(/\/$/, "")
+  );
+}
+
 export async function mainMenuKeyboard() {
   const { menu } = await getBotMenu();
   return buildMainMenuKeyboard(menu);

@@ -115,6 +115,21 @@ export class AccountService {
     return active[0]!;
   }
 
+  async resolveJobsCategory(projectId: string) {
+    const items = await this.db
+      .select()
+      .from(categories)
+      .where(eq(categories.projectId, projectId));
+    const active = items.filter((c) => c.isActive);
+    if (!active.length) return null;
+    const preferred = ["office", "it", "general"];
+    for (const slug of preferred) {
+      const found = active.find((c) => c.slug === slug);
+      if (found) return found;
+    }
+    return active[0]!;
+  }
+
   async uploadPhoto(dataUrl: string) {
     const url = await saveWebListingPhoto(dataUrl);
     return { url };
@@ -150,5 +165,9 @@ export class AccountService {
 
     const submitted = await this.listingsService.submit(listing.id);
     return { data: submitted };
+  }
+
+  async createJobsListing(userId: string, dto: CreateWebHorecaListingDto) {
+    return this.createHorecaListing(userId, dto);
   }
 }

@@ -1,3 +1,16 @@
+export interface ListingComment {
+  id: string;
+  authorName: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface ListingEngagement {
+  views: number;
+  likes: number;
+  comments: ListingComment[];
+}
+
 export interface PublicListingPosition {
   title: string;
   salary?: string | null;

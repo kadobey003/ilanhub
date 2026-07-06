@@ -3,8 +3,8 @@ import {
   HorecaStep,
   formatAddonUah,
   formatAmountUah,
-  formatHorecaPostHtml,
-  formatHorecaPreview,
+  formatJobsPostHtml,
+  formatJobsPreview,
   parseStoredPosition,
   type ApiCategory,
   type ApiVacancyType,
@@ -35,7 +35,7 @@ import { createSession, getSession, saveSession } from "./session.js";
 
 import { buildListingUrl } from "@ilanhub/shared";
 
-const HORECA_SLUG = "horeca";
+const JOBS_SLUG = "jobs";
 const MAX_VACANCIES = 3;
 const MIN_PHOTOS = 1;
 
@@ -112,7 +112,7 @@ async function persistListingUpdate(
   firstName?: string,
 ): Promise<void> {
   if (!session.listingId) return;
-  await submitHorecaListing(session, userId, firstName);
+  await submitJobsListing(session, userId, firstName);
 }
 
 export async function returnAfterEdit(ctx: Context, session: BotSession): Promise<void> {
@@ -126,7 +126,7 @@ export async function returnAfterEdit(ctx: Context, session: BotSession): Promis
   session.horecaStep = HorecaStep.EDIT_MENU;
   await saveSession(session);
   await ctx.reply(t("bot.fieldUpdated"));
-  await ctx.reply(i18n.bot.horeca.editMenu, {
+  await ctx.reply(i18n.bot.jobs.editMenu, {
     reply_markup: editMenuKeyboard(session.listingId),
   });
 }
@@ -163,12 +163,12 @@ function vacancyLabel(session: BotSession): string {
   return session.vacancies?.[session.vacancyIndex ?? 0]?.title ?? "";
 }
 
-function resolveDefaultHorecaCategoryId(
+function resolveDefaultJobsCategoryId(
   categories: ApiCategory[],
 ): string | null {
   const active = categories.filter((c) => c.isActive !== false);
   if (!active.length) return null;
-  const preferred = ["horeca", "general", "restaurant"];
+  const preferred = ["office", "it", "general"];
   for (const slug of preferred) {
     const found = active.find((c) => c.slug === slug);
     if (found) return found.id;
@@ -176,7 +176,7 @@ function resolveDefaultHorecaCategoryId(
   return active[0]!.id;
 }
 
-async function resolveHorecaProjectId(
+async function resolveJobsProjectId(
   session: BotSession,
 ): Promise<string | null> {
   if (session.projectId) return session.projectId;
@@ -187,41 +187,41 @@ async function resolveHorecaProjectId(
     // fallback below
   }
   const { data: projects } = await api.getProjects();
-  return projects.find((p) => p.slug === HORECA_SLUG)?.id ?? null;
+  return projects.find((p) => p.slug === JOBS_SLUG)?.id ?? null;
 }
 
-export async function startNewHorecaListing(
+export async function startNewJobsListing(
   ctx: Context,
   session: BotSession,
 ): Promise<void> {
   try {
-    const projectId = await resolveHorecaProjectId(session);
+    const projectId = await resolveJobsProjectId(session);
     if (!projectId) {
       await ctx.reply(i18n.bot.error);
       return;
     }
 
     const { data: categories } = await api.getCategories(projectId);
-    const categoryId = resolveDefaultHorecaCategoryId(categories);
+    const categoryId = resolveDefaultJobsCategoryId(categories);
     if (!categoryId) {
       await ctx.reply(i18n.bot.error);
       return;
     }
 
-    await startHorecaFlow(ctx, session, projectId, categoryId);
+    await startJobsFlow(ctx, session, projectId, categoryId);
   } catch (err) {
-    console.error("startNewHorecaListing failed:", err);
+    console.error("startNewJobsListing failed:", err);
     await ctx.reply(i18n.bot.error);
   }
 }
 
-export async function startHorecaFlow(
+export async function startJobsFlow(
   ctx: Context,
   session: BotSession,
   projectId: string,
   categoryId: string,
 ): Promise<void> {
-  session.flow = "horeca";
+  session.flow = "jobs";
   session.projectId = projectId;
   session.categoryId = categoryId;
   session.cityId = undefined;
@@ -242,12 +242,12 @@ export async function startHorecaFlow(
     });
     return;
   }
-  const text = `${i18n.bot.horeca.intro}\n\n${i18n.bot.horeca.selectCity}`;
+  const text = `${i18n.bot.jobs.intro}\n\n${i18n.bot.jobs.selectCity}`;
   const markup = cityKeyboard(cities);
   await replyOrEditText(ctx, text, { reply_markup: markup });
 }
 
-export async function handleHorecaCity(
+export async function handleJobsCity(
   ctx: Context,
   session: BotSession,
   cityId: string,
@@ -263,14 +263,14 @@ export async function handleHorecaCity(
 
   session.horecaStep = HorecaStep.BUSINESS_TYPE;
   await saveSession(session);
-  await ctx.editMessageText(i18n.bot.horeca.businessType, {
+  await ctx.editMessageText(i18n.bot.jobs.businessType, {
     reply_markup: cancelKeyboard(),
   });
 }
 
 async function promptVacancyCount(ctx: Context, session: BotSession): Promise<void> {
   const bundles = session.projectId ? await getBundlePricing(session.projectId) : [];
-  await ctx.reply(i18n.bot.horeca.vacancyCount, {
+  await ctx.reply(i18n.bot.jobs.vacancyCount, {
     reply_markup: vacancyCountKeyboard(bundles),
   });
 }
@@ -278,7 +278,7 @@ async function promptVacancyCount(ctx: Context, session: BotSession): Promise<vo
 async function promptVacancyTitle(ctx: Context, session: BotSession): Promise<void> {
   const n = (session.vacancyIndex ?? 0) + 1;
   const total = session.vacancyCount ?? 1;
-  await ctx.reply(t("bot.horeca.vacancyTitle", { n, total }), {
+  await ctx.reply(t("bot.jobs.vacancyTitle", { n, total }), {
     reply_markup: cancelKeyboard(),
   });
 }
@@ -287,13 +287,13 @@ async function promptVacancyDescription(
   ctx: Context,
   session: BotSession,
 ): Promise<void> {
-  await ctx.reply(t("bot.horeca.vacancyDescription", { title: vacancyLabel(session) }), {
+  await ctx.reply(t("bot.jobs.vacancyDescription", { title: vacancyLabel(session) }), {
     reply_markup: skipActionKeyboard("action:vacancy_desc_skip"),
   });
 }
 
 async function promptBenefits(ctx: Context): Promise<void> {
-  await ctx.reply(i18n.bot.horeca.benefits, {
+  await ctx.reply(i18n.bot.jobs.benefits, {
     reply_markup: skipActionKeyboard("action:benefits_skip"),
   });
 }
@@ -331,7 +331,7 @@ async function afterVacancyBlock(ctx: Context, session: BotSession): Promise<voi
   }
 }
 
-export async function handleHorecaText(
+export async function handleJobsText(
   ctx: Context,
   session: BotSession,
   text: string,
@@ -349,7 +349,7 @@ export async function handleHorecaText(
       }
       session.horecaStep = HorecaStep.BUSINESS_NAME;
       await saveSession(session);
-      await ctx.reply(i18n.bot.horeca.businessName, { reply_markup: cancelKeyboard() });
+      await ctx.reply(i18n.bot.jobs.businessName, { reply_markup: cancelKeyboard() });
       return true;
 
     case HorecaStep.BUSINESS_NAME:
@@ -361,7 +361,7 @@ export async function handleHorecaText(
       }
       session.horecaStep = HorecaStep.ADDRESS;
       await saveSession(session);
-      await ctx.reply(i18n.bot.horeca.address, { reply_markup: cancelKeyboard() });
+      await ctx.reply(i18n.bot.jobs.address, { reply_markup: cancelKeyboard() });
       return true;
 
     case HorecaStep.ADDRESS:
@@ -393,7 +393,7 @@ export async function handleHorecaText(
       session.vacancies = vacancies;
       session.horecaStep = HorecaStep.VACANCY_EXPERIENCE;
       await saveSession(session);
-      await ctx.reply(t("bot.horeca.vacancyExperience", { title: text }), {
+      await ctx.reply(t("bot.jobs.vacancyExperience", { title: text }), {
         reply_markup: cancelKeyboard(),
       });
       return true;
@@ -406,7 +406,7 @@ export async function handleHorecaText(
       session.vacancies = vacancies;
       session.horecaStep = HorecaStep.VACANCY_SALARY;
       await saveSession(session);
-      await ctx.reply(t("bot.horeca.vacancySalary", { title: vacancyLabel(session) }), {
+      await ctx.reply(t("bot.jobs.vacancySalary", { title: vacancyLabel(session) }), {
         reply_markup: cancelKeyboard(),
       });
       return true;
@@ -419,7 +419,7 @@ export async function handleHorecaText(
       session.vacancies = vacancies;
       session.horecaStep = HorecaStep.VACANCY_SCHEDULE;
       await saveSession(session);
-      await ctx.reply(t("bot.horeca.vacancySchedule", { title: vacancyLabel(session) }), {
+      await ctx.reply(t("bot.jobs.vacancySchedule", { title: vacancyLabel(session) }), {
         reply_markup: cancelKeyboard(),
       });
       return true;
@@ -432,7 +432,7 @@ export async function handleHorecaText(
       session.vacancies = vacancies;
       session.horecaStep = HorecaStep.VACANCY_TIME;
       await saveSession(session);
-      await ctx.reply(t("bot.horeca.vacancyTime", { title: vacancyLabel(session) }), {
+      await ctx.reply(t("bot.jobs.vacancyTime", { title: vacancyLabel(session) }), {
         reply_markup: cancelKeyboard(),
       });
       return true;
@@ -469,7 +469,7 @@ export async function handleHorecaText(
       }
       session.horecaStep = HorecaStep.CONTACT;
       await saveSession(session);
-      await ctx.reply(i18n.bot.horeca.contact, {
+      await ctx.reply(i18n.bot.jobs.contact, {
         reply_markup: horecaContactKeyboard(),
       });
       return true;
@@ -483,7 +483,7 @@ export async function handleHorecaText(
       }
       session.horecaStep = HorecaStep.UPLOAD_PHOTOS;
       await saveSession(session);
-      await ctx.reply(i18n.bot.horeca.uploadPhotos, {
+      await ctx.reply(i18n.bot.jobs.uploadPhotos, {
         reply_markup: { remove_keyboard: true },
       });
       return true;
@@ -499,7 +499,7 @@ export async function handleHorecaText(
         await saveSession(session);
         await promptDailyDuplicate(ctx, session);
       } else {
-        await ctx.reply(i18n.bot.horeca.invalidDate, {
+        await ctx.reply(i18n.bot.jobs.invalidDate, {
           reply_markup: skipActionKeyboard("action:schedule_skip"),
         });
       }
@@ -510,7 +510,7 @@ export async function handleHorecaText(
   }
 }
 
-export async function handleHorecaContact(
+export async function handleJobsContact(
   ctx: Context,
   session: BotSession,
   phone: string,
@@ -522,7 +522,7 @@ export async function handleHorecaContact(
   }
   session.horecaStep = HorecaStep.UPLOAD_PHOTOS;
   await saveSession(session);
-  await ctx.reply(i18n.bot.horeca.uploadPhotos, {
+  await ctx.reply(i18n.bot.jobs.uploadPhotos, {
     reply_markup: { remove_keyboard: true },
   });
 }
@@ -542,7 +542,7 @@ async function applyVacancyCount(session: BotSession, count: number): Promise<vo
   session.price = bundle.price;
 }
 
-export async function handleHorecaVacancyCount(
+export async function handleJobsVacancyCount(
   ctx: Context,
   session: BotSession,
   count: number,
@@ -551,13 +551,13 @@ export async function handleHorecaVacancyCount(
   await applyVacancyCount(session, count);
   await saveSession(session);
   await ctx.editMessageText(
-    t("bot.horeca.vacancyTitle", { n: 1, total: count }),
+    t("bot.jobs.vacancyTitle", { n: 1, total: count }),
     {
     reply_markup: cancelKeyboard(),
   });
 }
 
-export async function handleHorecaPhoto(ctx: Context, session: BotSession): Promise<void> {
+export async function handleJobsPhoto(ctx: Context, session: BotSession): Promise<void> {
   if (session.horecaStep !== HorecaStep.UPLOAD_PHOTOS) return;
 
   const photos = ctx.message?.photo ?? [];
@@ -567,23 +567,23 @@ export async function handleHorecaPhoto(ctx: Context, session: BotSession): Prom
   session.mediaUrls = [`tg:${largest.file_id}`];
   if (isEditingExisting(session) && session.editTarget === "photo") {
     await saveSession(session);
-    await ctx.reply(i18n.bot.horeca.photoAdded);
+    await ctx.reply(i18n.bot.jobs.photoAdded);
     await returnAfterEdit(ctx, session);
     return;
   }
   session.horecaStep = HorecaStep.PIN_POST;
   await saveSession(session);
 
-  await ctx.reply(i18n.bot.horeca.photoAdded);
+  await ctx.reply(i18n.bot.jobs.photoAdded);
   await promptPinPost(ctx, session);
 }
 
 async function promptPinPost(ctx: Context, session: BotSession): Promise<void> {
   const projectId = session.projectId ?? "";
   const price = await pinPostPrice(projectId);
-  let text = t("bot.horeca.pinPost", { price: formatAddonUah(price) });
+  let text = t("bot.jobs.pinPost", { price: formatAddonUah(price) });
   const reserve = pinReserveNote();
-  if (reserve) text += `\n\n${t("bot.horeca.pinReserve", { date: reserve })}`;
+  if (reserve) text += `\n\n${t("bot.jobs.pinReserve", { date: reserve })}`;
   session.horecaStep = HorecaStep.PIN_POST;
   await saveSession(session);
   await ctx.reply(text, {
@@ -604,7 +604,7 @@ export async function handlePinChoice(
   }
   session.horecaStep = HorecaStep.SCHEDULE_POST;
   await saveSession(session);
-  await ctx.editMessageText(i18n.bot.horeca.schedulePost, {
+  await ctx.editMessageText(i18n.bot.jobs.schedulePost, {
     reply_markup: skipActionKeyboard("action:schedule_skip"),
   });
 }
@@ -627,7 +627,7 @@ export async function promptDailyDuplicate(ctx: Context, session: BotSession): P
   session.horecaStep = HorecaStep.DAILY_DUPLICATE;
   await saveSession(session);
   const msg = ctx.callbackQuery?.message;
-  const text = t("bot.horeca.dailyDuplicate", { price: formatAddonUah(price) });
+  const text = t("bot.jobs.dailyDuplicate", { price: formatAddonUah(price) });
   const markup = yesNoKeyboard("action:daily_yes", "action:daily_no");
   if (msg) {
     await ctx.editMessageText(text, { reply_markup: markup });
@@ -649,7 +649,7 @@ export async function handleDailyChoice(
   }
   session.horecaStep = HorecaStep.PREVIEW;
   await saveSession(session);
-  await showHorecaPreview(ctx, session);
+  await showJobsPreview(ctx, session);
 }
 
 async function buildChannelPostInput(session: BotSession) {
@@ -662,7 +662,7 @@ async function buildChannelPostInput(session: BotSession) {
     contactPhone: session.contactPhone,
     positions: session.vacancies ?? [],
     siteUrl: session.listingId
-      ? buildListingUrl(baseUrl, HORECA_SLUG, session.listingId)
+      ? buildListingUrl(baseUrl, JOBS_SLUG, session.listingId)
       : undefined,
   };
 }
@@ -671,7 +671,7 @@ export async function showListingChannelPreview(
   ctx: Context,
   session: BotSession,
 ): Promise<void> {
-  const postHtml = formatHorecaPostHtml(await buildChannelPostInput(session));
+  const postHtml = formatJobsPostHtml(await buildChannelPostInput(session));
   const listingId = session.listingId;
   const markup = listingId
     ? editChannelPreviewKeyboard(listingId)
@@ -695,7 +695,7 @@ export async function showListingChannelPreview(
         reply_markup: markup,
       });
     } else {
-      await ctx.replyWithPhoto(photo, { caption: i18n.bot.horeca.preview });
+      await ctx.replyWithPhoto(photo, { caption: i18n.bot.jobs.preview });
       await ctx.reply(postHtml, { parse_mode: "HTML", reply_markup: markup });
     }
     return;
@@ -715,7 +715,7 @@ export async function saveAndRepublishListing(
   }
 
   const listingId = session.listingId;
-  await submitHorecaListing(session, userId, ctx.from?.first_name);
+  await submitJobsListing(session, userId, ctx.from?.first_name);
 
   const { data: listings } = await api.getUserListings("telegram", userId);
   const listing = listings.find((l) => l.id === listingId);
@@ -733,12 +733,12 @@ export async function saveAndRepublishListing(
   session.horecaStep = HorecaStep.EDIT_MENU;
   session.editTarget = undefined;
   await saveSession(session);
-  await ctx.reply(i18n.bot.horeca.editMenu, {
+  await ctx.reply(i18n.bot.jobs.editMenu, {
     reply_markup: editMenuKeyboard(listingId),
   });
 }
 
-export async function showHorecaPreview(ctx: Context, session: BotSession): Promise<void> {
+export async function showJobsPreview(ctx: Context, session: BotSession): Promise<void> {
   const bundle = await resolveBundlePrice(session);
   session.bundlePrice = bundle.price;
   session.bundlePriceId = bundle.id;
@@ -747,18 +747,18 @@ export async function showHorecaPreview(ctx: Context, session: BotSession): Prom
 
   const projectId = session.projectId ?? "";
   const adminFooter: string[] = [
-    t("bot.horeca.basePrice", { price: formatAmountUah(bundle.price) }),
+    t("bot.jobs.basePrice", { price: formatAmountUah(bundle.price) }),
   ];
   if (session.pinPost) {
     adminFooter.push(
-      t("bot.horeca.addonPin", {
+      t("bot.jobs.addonPin", {
         price: formatAddonUah(await pinPostPrice(projectId)),
       }),
     );
   }
   if (session.dailyDuplicate) {
     adminFooter.push(
-      t("bot.horeca.addonDaily", {
+      t("bot.jobs.addonDaily", {
         price: formatAddonUah(
           await dailyDuplicatePrice(projectId, session.vacancyCount ?? 1),
         ),
@@ -766,13 +766,13 @@ export async function showHorecaPreview(ctx: Context, session: BotSession): Prom
     );
   }
   adminFooter.push(
-    t("bot.horeca.totalPrice", { price: formatAmountUah(session.price ?? 0) }),
+    t("bot.jobs.totalPrice", { price: formatAmountUah(session.price ?? 0) }),
   );
   if (session.scheduledPostAt) {
     adminFooter.push(`📅 Публікація: ${session.scheduledPostAt}`);
   }
 
-  const preview = formatHorecaPreview(
+  const preview = formatJobsPreview(
     {
       businessType: session.businessType,
       title: session.title ?? "",
@@ -801,7 +801,7 @@ export async function showHorecaPreview(ctx: Context, session: BotSession): Prom
     if (preview.length <= 1020) {
       await ctx.replyWithPhoto(photo, { caption: preview, reply_markup: markup });
     } else {
-      await ctx.replyWithPhoto(photo, { caption: i18n.bot.horeca.preview });
+      await ctx.replyWithPhoto(photo, { caption: i18n.bot.jobs.preview });
       await ctx.reply(preview, { reply_markup: markup });
     }
     return;
@@ -820,7 +820,7 @@ export async function showEditMenu(ctx: Context, session: BotSession): Promise<v
       // ignore
     }
   }
-  await ctx.reply(i18n.bot.horeca.editMenu, {
+  await ctx.reply(i18n.bot.jobs.editMenu, {
     reply_markup: editMenuKeyboard(session.listingId),
   });
 }
@@ -859,7 +859,7 @@ export async function startEditExistingListing(
 
     const session =
       (await getSession("telegram", userId)) ?? createSession(userId, "telegram");
-    session.flow = "horeca";
+    session.flow = "jobs";
     session.horecaStep = HorecaStep.EDIT_MENU;
     session.listingId = data.id;
     session.projectId = data.projectId;
@@ -882,7 +882,7 @@ export async function startEditExistingListing(
     session.editTarget = undefined;
     await saveSession(session);
 
-    await ctx.reply(i18n.bot.horeca.editMenu, {
+    await ctx.reply(i18n.bot.jobs.editMenu, {
       reply_markup: editMenuKeyboard(data.id),
     });
   } catch (err) {
@@ -891,7 +891,7 @@ export async function startEditExistingListing(
   }
 }
 
-export async function handleHorecaEdit(
+export async function handleJobsEdit(
   ctx: Context,
   session: BotSession,
   target: string,
@@ -904,7 +904,7 @@ export async function handleHorecaEdit(
       await saveSession(session);
       if (session.projectId) {
         const { data: cities } = await api.getCities(session.projectId);
-        await ctx.editMessageText(i18n.bot.horeca.selectCity, {
+        await ctx.editMessageText(i18n.bot.jobs.selectCity, {
           reply_markup: cityKeyboard(cities),
         });
       }
@@ -912,7 +912,7 @@ export async function handleHorecaEdit(
     case "venue":
       session.horecaStep = HorecaStep.BUSINESS_TYPE;
       await saveSession(session);
-      await ctx.editMessageText(i18n.bot.horeca.businessType, {
+      await ctx.editMessageText(i18n.bot.jobs.businessType, {
         reply_markup: cancelKeyboard(),
       });
       break;
@@ -931,7 +931,7 @@ export async function handleHorecaEdit(
     case "contact":
       session.horecaStep = HorecaStep.CONTACT;
       await saveSession(session);
-      await ctx.reply(i18n.bot.horeca.contact, { reply_markup: horecaContactKeyboard() });
+      await ctx.reply(i18n.bot.jobs.contact, { reply_markup: horecaContactKeyboard() });
       break;
     case "photo":
       session.horecaStep = HorecaStep.UPLOAD_PHOTOS;
@@ -939,7 +939,7 @@ export async function handleHorecaEdit(
         session.mediaUrls = [];
       }
       await saveSession(session);
-      await ctx.reply(i18n.bot.horeca.uploadPhotos);
+      await ctx.reply(i18n.bot.jobs.uploadPhotos);
       break;
     case "pin":
       await promptPinPost(ctx, session);
@@ -947,7 +947,7 @@ export async function handleHorecaEdit(
     case "schedule":
       session.horecaStep = HorecaStep.SCHEDULE_POST;
       await saveSession(session);
-      await ctx.editMessageText(i18n.bot.horeca.schedulePost, {
+      await ctx.editMessageText(i18n.bot.jobs.schedulePost, {
         reply_markup: skipActionKeyboard("action:schedule_skip"),
       });
       break;
@@ -958,12 +958,12 @@ export async function handleHorecaEdit(
       if (session.listingId) {
         await showListingChannelPreview(ctx, session);
       } else {
-        await showHorecaPreview(ctx, session);
+        await showJobsPreview(ctx, session);
       }
   }
 }
 
-export async function submitHorecaListing(
+export async function submitJobsListing(
   session: BotSession,
   userId: string,
   firstName?: string,
@@ -1010,7 +1010,7 @@ export async function submitHorecaListing(
   };
 }
 
-export async function resumeHoreca(ctx: Context, session: BotSession): Promise<void> {
+export async function resumeJobs(ctx: Context, session: BotSession): Promise<void> {
   const step = session.horecaStep;
   if (!step || !session.projectId) {
     await ctx.reply(i18n.bot.continue);
@@ -1020,7 +1020,7 @@ export async function resumeHoreca(ctx: Context, session: BotSession): Promise<v
   switch (step) {
     case HorecaStep.SELECT_CITY: {
       const { data: cities } = await api.getCities(session.projectId);
-      await ctx.reply(`${i18n.bot.horeca.intro}\n\n${i18n.bot.horeca.selectCity}`, {
+      await ctx.reply(`${i18n.bot.jobs.intro}\n\n${i18n.bot.jobs.selectCity}`, {
         reply_markup: cityKeyboard(cities),
       });
       break;
@@ -1031,24 +1031,24 @@ export async function resumeHoreca(ctx: Context, session: BotSession): Promise<v
         : HorecaStep.SELECT_CITY;
       await saveSession(session);
       if (session.cityId) {
-        await ctx.reply(i18n.bot.horeca.businessType, {
+        await ctx.reply(i18n.bot.jobs.businessType, {
           reply_markup: cancelKeyboard(),
         });
       } else if (session.projectId) {
         const { data: cities } = await api.getCities(session.projectId);
-        await ctx.reply(i18n.bot.horeca.selectCity, {
+        await ctx.reply(i18n.bot.jobs.selectCity, {
           reply_markup: cityKeyboard(cities),
         });
       }
       break;
     case HorecaStep.BUSINESS_TYPE:
-      await ctx.reply(i18n.bot.horeca.businessType, { reply_markup: cancelKeyboard() });
+      await ctx.reply(i18n.bot.jobs.businessType, { reply_markup: cancelKeyboard() });
       break;
     case HorecaStep.BUSINESS_NAME:
-      await ctx.reply(i18n.bot.horeca.businessName, { reply_markup: cancelKeyboard() });
+      await ctx.reply(i18n.bot.jobs.businessName, { reply_markup: cancelKeyboard() });
       break;
     case HorecaStep.ADDRESS:
-      await ctx.reply(i18n.bot.horeca.address, { reply_markup: cancelKeyboard() });
+      await ctx.reply(i18n.bot.jobs.address, { reply_markup: cancelKeyboard() });
       break;
     case HorecaStep.VACANCY_COUNT:
       await promptVacancyCount(ctx, session);
@@ -1057,22 +1057,22 @@ export async function resumeHoreca(ctx: Context, session: BotSession): Promise<v
       await promptVacancyTitle(ctx, session);
       break;
     case HorecaStep.VACANCY_EXPERIENCE:
-      await ctx.reply(t("bot.horeca.vacancyExperience", { title: vacancyLabel(session) }), {
+      await ctx.reply(t("bot.jobs.vacancyExperience", { title: vacancyLabel(session) }), {
         reply_markup: cancelKeyboard(),
       });
       break;
     case HorecaStep.VACANCY_SALARY:
-      await ctx.reply(t("bot.horeca.vacancySalary", { title: vacancyLabel(session) }), {
+      await ctx.reply(t("bot.jobs.vacancySalary", { title: vacancyLabel(session) }), {
         reply_markup: cancelKeyboard(),
       });
       break;
     case HorecaStep.VACANCY_SCHEDULE:
-      await ctx.reply(t("bot.horeca.vacancySchedule", { title: vacancyLabel(session) }), {
+      await ctx.reply(t("bot.jobs.vacancySchedule", { title: vacancyLabel(session) }), {
         reply_markup: cancelKeyboard(),
       });
       break;
     case HorecaStep.VACANCY_TIME:
-      await ctx.reply(t("bot.horeca.vacancyTime", { title: vacancyLabel(session) }), {
+      await ctx.reply(t("bot.jobs.vacancyTime", { title: vacancyLabel(session) }), {
         reply_markup: cancelKeyboard(),
       });
       break;
@@ -1083,16 +1083,16 @@ export async function resumeHoreca(ctx: Context, session: BotSession): Promise<v
       await promptBenefits(ctx);
       break;
     case HorecaStep.CONTACT:
-      await ctx.reply(i18n.bot.horeca.contact, { reply_markup: horecaContactKeyboard() });
+      await ctx.reply(i18n.bot.jobs.contact, { reply_markup: horecaContactKeyboard() });
       break;
     case HorecaStep.UPLOAD_PHOTOS:
-      await ctx.reply(i18n.bot.horeca.uploadPhotos);
+      await ctx.reply(i18n.bot.jobs.uploadPhotos);
       break;
     case HorecaStep.PIN_POST:
       await promptPinPost(ctx, session);
       break;
     case HorecaStep.SCHEDULE_POST:
-      await ctx.reply(i18n.bot.horeca.schedulePost, {
+      await ctx.reply(i18n.bot.jobs.schedulePost, {
         reply_markup: skipActionKeyboard("action:schedule_skip"),
       });
       break;
@@ -1101,11 +1101,11 @@ export async function resumeHoreca(ctx: Context, session: BotSession): Promise<v
       break;
     case HorecaStep.PREVIEW:
     case HorecaStep.EDIT_MENU:
-      await showHorecaPreview(ctx, session);
+      await showJobsPreview(ctx, session);
       break;
     default:
       await ctx.reply(i18n.bot.continue);
   }
 }
 
-export { HORECA_SLUG };
+export { JOBS_SLUG };

@@ -1,9 +1,11 @@
 import { HorecaCoverImage } from "./HorecaCoverImage";
 import { HorecaPostBody } from "./HorecaPostBody";
-import type { PublicListingDetail } from "@/lib/listings-types";
+import { ListingEngagement } from "@/components/listing/ListingEngagement";
+import type { ListingEngagement as EngagementData, PublicListingDetail } from "@/lib/listings-types";
 
 interface Props {
   listing: PublicListingDetail;
+  engagement: EngagementData;
 }
 
 function formatDate(value?: string | null): string | null {
@@ -19,11 +21,11 @@ function formatDate(value?: string | null): string | null {
   }
 }
 
-export function HorecaListingView({ listing }: Props) {
+export function HorecaListingView({ listing, engagement }: Props) {
   const published = formatDate(listing.publishedAt);
 
   return (
-    <article className="mx-auto max-w-2xl">
+    <article>
       <HorecaCoverImage
         src={listing.imageUrl}
         title={listing.title ?? "Заклад"}
@@ -41,6 +43,12 @@ export function HorecaListingView({ listing }: Props) {
             <span>{listing.categoryName}</span>
           </footer>
         )}
+
+        <ListingEngagement
+          listingId={listing.id}
+          projectId={listing.projectId}
+          initial={engagement}
+        />
       </div>
     </article>
   );

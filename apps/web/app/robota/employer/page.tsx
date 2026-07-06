@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Hero } from "@/components/landing/Hero";
 import { FeatureGrid } from "@/components/landing/FeatureGrid";
 import { CTASection } from "@/components/landing/CTASection";
+import { JobListingCard } from "@/components/listings/JobListingCard";
 import { Button } from "@/components/ui/Button";
+import { fetchProjectListings } from "@/lib/listings-api";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -10,7 +12,10 @@ export const metadata: Metadata = {
   description: "Опублікуйте вакансію — автоматичний розсил по всіх каналах",
 };
 
-export default function RobotaEmployerPage() {
+export default async function RobotaEmployerPage() {
+  const listings = await fetchProjectListings("jobs");
+  const recent = listings.slice(0, 3);
+
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6">
       <div className="py-8 sm:py-12">
@@ -26,6 +31,25 @@ export default function RobotaEmployerPage() {
           gradient="from-violet-600 via-purple-600 to-indigo-800"
         />
       </div>
+
+      {recent.length > 0 && (
+        <section className="mb-12">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <h2 className="text-xl font-bold text-slate-900">Останні вакансії</h2>
+            <Link
+              href="/jobs/kyiv/ogoloshennya"
+              className="text-sm font-semibold text-violet-700 hover:underline"
+            >
+              Усі →
+            </Link>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {recent.map((listing) => (
+              <JobListingCard key={listing.id} listing={listing} project="jobs" />
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="mb-12 grid gap-4 sm:grid-cols-3">
         {[

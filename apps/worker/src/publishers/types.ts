@@ -12,6 +12,7 @@ export interface ListingPublishContext {
   category: { name: string } | null;
   city: { name: string } | null;
   district: { name: string } | null;
+  publicBaseUrl: string;
 }
 
 export interface PublishResult {

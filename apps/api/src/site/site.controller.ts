@@ -9,4 +9,9 @@ export class SiteController {
   branding() {
     return this.siteService.getBrandingResponse();
   }
+
+  @Get("telegram-channels")
+  telegramChannels() {
+    return this.siteService.getTelegramChannelsResponse();
+  }
 }

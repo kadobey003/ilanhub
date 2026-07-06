@@ -5,7 +5,10 @@ import { FeatureGrid } from "@/components/landing/FeatureGrid";
 import { CTASection } from "@/components/landing/CTASection";
 import { Button } from "@/components/ui/Button";
 import { CityChips } from "@/components/listings/CityChips";
+import { JobListingCard } from "@/components/listings/JobListingCard";
+import { TelegramBrowseBanner } from "@/components/listings/TelegramBrowseBanner";
 import { fetchProjectCities } from "@/lib/cities-api";
+import { fetchProjectListings, fetchProjectBrowseMeta } from "@/lib/listings-api";
 
 export const metadata: Metadata = {
   title: "Шукаю роботу",
@@ -13,7 +16,12 @@ export const metadata: Metadata = {
 };
 
 export default async function RobotaSeekerPage() {
-  const cities = await fetchProjectCities("jobs");
+  const [cities, listings, browse] = await Promise.all([
+    fetchProjectCities("jobs"),
+    fetchProjectListings("jobs"),
+    fetchProjectBrowseMeta("jobs"),
+  ]);
+  const recent = listings.slice(0, 3);
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-nav sm:px-6 md:pb-16">
@@ -31,12 +39,38 @@ export default async function RobotaSeekerPage() {
         />
       </div>
 
+      <section className="pb-6">
+        <TelegramBrowseBanner
+          channels={browse.telegramChannels}
+          botUsername={browse.botUsername}
+        />
+      </section>
+
       <section className="pb-12">
         <h2 className="text-xl font-bold text-slate-900">Популярні міста</h2>
         <div className="mt-4">
           <CityChips project="jobs" cities={cities} allHref="/jobs" />
         </div>
       </section>
+
+      {recent.length > 0 && (
+        <section className="pb-10">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <h2 className="text-xl font-bold text-slate-900">Актуальні вакансії</h2>
+            <Link
+              href="/jobs/kyiv/ogoloshennya"
+              className="text-sm font-semibold text-brand hover:underline"
+            >
+              Усі →
+            </Link>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {recent.map((listing) => (
+              <JobListingCard key={listing.id} listing={listing} project="jobs" />
+            ))}
+          </div>
+        </section>
+      )}
 
       <FeatureGrid
         title="Як це працює?"

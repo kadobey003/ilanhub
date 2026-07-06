@@ -24,7 +24,7 @@ import {
 } from "@ilanhub/database";
 import { DRIZZLE, PUBLISH_LISTING_QUEUE } from "../common/constants.js";
 import type { PublishListingJob } from "../queue/queue.module.js";
-import { slugify, telegramPublicUrl } from "@ilanhub/shared";
+import { slugify, telegramPublicUrl, resolvePublicBaseUrl } from "@ilanhub/shared";
 import {
   adminGroupToApi,
   buildAdminGroupConfig,
@@ -2143,7 +2143,7 @@ export class AdminService {
     return {
       supportMessage:
         "Підтримка: напишіть нам @ilanhub_support або на сайті в розділі «Контакти».",
-      siteUrl: process.env.PUBLIC_URL?.trim() || "https://ilanhub.com",
+      siteUrl: resolvePublicBaseUrl(),
       supportLabel: "👨‍💻 Підтримка",
       siteLabel: "🌐 Наш сайт ↗",
       channelsLabel: "📢 Наші канали",

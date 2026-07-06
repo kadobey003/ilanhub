@@ -1,10 +1,13 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import {
+  analyticsEvents,
   categories,
   channelConfigs,
   cities,
   districts,
+  listingBoosts,
+  listingComments,
   listingMedia,
   listingPositions,
   listings,
@@ -185,6 +188,23 @@ export class ListingsPublicService {
     };
   }
 
+  private async featuredListingIds(listingIds: string[]): Promise<Set<string>> {
+    if (!listingIds.length) return new Set();
+    const now = new Date();
+    const rows = await this.db
+      .select({ listingId: listingBoosts.listingId })
+      .from(listingBoosts)
+      .where(
+        and(
+          inArray(listingBoosts.listingId, listingIds),
+          lte(listingBoosts.startsAt, now),
+          gte(listingBoosts.endsAt, now),
+          inArray(listingBoosts.type, ["vip", "featured"]),
+        ),
+      );
+    return new Set(rows.map((r) => r.listingId));
+  }
+
   async findPublicById(id: string) {
     const [row] = await this.db
       .select({
@@ -256,6 +276,81 @@ export class ListingsPublicService {
         sortOrder: p.sortOrder,
       })),
     };
+  }
+
+  async getEngagement(listingId: string) {
+    const [viewsRow] = await this.db
+      .select({ total: count() })
+      .from(analyticsEvents)
+      .where(
+        and(
+          eq(analyticsEvents.listingId, listingId),
+          eq(analyticsEvents.eventType, "view"),
+        ),
+      );
+
+    const [likesRow] = await this.db
+      .select({ total: count() })
+      .from(analyticsEvents)
+      .where(
+        and(
+          eq(analyticsEvents.listingId, listingId),
+          eq(analyticsEvents.eventType, "like"),
+        ),
+      );
+
+    const comments = await this.db
+      .select({
+        id: listingComments.id,
+        authorName: listingComments.authorName,
+        body: listingComments.body,
+        createdAt: listingComments.createdAt,
+      })
+      .from(listingComments)
+      .where(eq(listingComments.listingId, listingId))
+      .orderBy(desc(listingComments.createdAt))
+      .limit(50);
+
+    return {
+      views: Number(viewsRow?.total ?? 0),
+      likes: Number(likesRow?.total ?? 0),
+      comments,
+    };
+  }
+
+  async addComment(
+    listingId: string,
+    authorName: string,
+    body: string,
+  ) {
+    const [listing] = await this.db
+      .select({ id: listings.id })
+      .from(listings)
+      .where(
+        and(
+          eq(listings.id, listingId),
+          inArray(listings.status, [...PUBLIC_STATUSES]),
+        ),
+      )
+      .limit(1);
+
+    if (!listing) return null;
+
+    const [row] = await this.db
+      .insert(listingComments)
+      .values({
+        listingId,
+        authorName: authorName.trim(),
+        body: body.trim(),
+      })
+      .returning({
+        id: listingComments.id,
+        authorName: listingComments.authorName,
+        body: listingComments.body,
+        createdAt: listingComments.createdAt,
+      });
+
+    return row;
   }
 
   async findPublishedByProject(projectSlug: string, citySlug?: string) {

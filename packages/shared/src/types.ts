@@ -301,7 +301,7 @@ export interface BotSession {
   userId: string;
   channel: BotChannel;
   state: BotStep;
-  flow?: "horeca" | "default";
+  flow?: "horeca" | "jobs" | "browse_jobs" | "default";
   horecaStep?: HorecaStep;
   updatedAt: string;
   projectId?: string;

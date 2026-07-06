@@ -1,6 +1,6 @@
 import { PUBLIC_API_URL } from "./api-url";
 
-export type AnalyticsEventType = "view" | "click" | "conversion";
+export type AnalyticsEventType = "view" | "click" | "conversion" | "like";
 
 export interface TrackAnalyticsPayload {
   eventType: AnalyticsEventType;
