@@ -24,7 +24,7 @@ import {
 } from "@ilanhub/database";
 import { DRIZZLE, PUBLISH_LISTING_QUEUE } from "../common/constants.js";
 import type { PublishListingJob } from "../queue/queue.module.js";
-import { slugify } from "@ilanhub/shared";
+import { slugify, telegramPublicUrl } from "@ilanhub/shared";
 import { hashPassword } from "./password.util.js";
 import {
   deleteTelegramMessage,
@@ -2086,6 +2086,119 @@ export class AdminService {
     return row!;
   }
 
+  private defaultBotMenu() {
+    return {
+      supportMessage:
+        "Підтримка: напишіть нам @ilanhub_support або на сайті в розділі «Контакти».",
+      siteUrl: process.env.PUBLIC_URL?.trim() || "https://ilanhub.com",
+      supportLabel: "👨‍💻 Підтримка",
+      siteLabel: "🌐 Наш сайт ↗",
+      channelsLabel: "📢 Наші канали",
+      showSupport: true,
+      showSite: true,
+      showChannels: true,
+    };
+  }
+
+  parseBotMenu(cfg: Record<string, unknown>) {
+    const menu = (cfg.menu ?? {}) as Record<string, unknown>;
+    const defaults = this.defaultBotMenu();
+    return {
+      supportMessage: String(menu.supportMessage ?? defaults.supportMessage),
+      siteUrl: String(menu.siteUrl ?? defaults.siteUrl),
+      supportLabel: String(menu.supportLabel ?? defaults.supportLabel),
+      siteLabel: String(menu.siteLabel ?? defaults.siteLabel),
+      channelsLabel: String(menu.channelsLabel ?? defaults.channelsLabel),
+      showSupport: menu.showSupport !== false,
+      showSite: menu.showSite !== false,
+      showChannels: menu.showChannels !== false,
+    };
+  }
+
+  private buildBotMenuConfig(
+    prev: Record<string, unknown>,
+    dto: TelegramSettingsDto,
+  ) {
+    const prevMenu = this.parseBotMenu(prev);
+    return {
+      supportMessage:
+        dto.supportMessage !== undefined
+          ? dto.supportMessage.trim()
+          : prevMenu.supportMessage,
+      siteUrl:
+        dto.siteUrl !== undefined
+          ? dto.siteUrl.trim() || prevMenu.siteUrl
+          : prevMenu.siteUrl,
+      supportLabel:
+        dto.supportLabel !== undefined
+          ? dto.supportLabel.trim() || prevMenu.supportLabel
+          : prevMenu.supportLabel,
+      siteLabel:
+        dto.siteLabel !== undefined
+          ? dto.siteLabel.trim() || prevMenu.siteLabel
+          : prevMenu.siteLabel,
+      channelsLabel:
+        dto.channelsLabel !== undefined
+          ? dto.channelsLabel.trim() || prevMenu.channelsLabel
+          : prevMenu.channelsLabel,
+      showSupport: dto.showSupport ?? prevMenu.showSupport,
+      showSite: dto.showSite ?? prevMenu.showSite,
+      showChannels: dto.showChannels ?? prevMenu.showChannels,
+    };
+  }
+
+  async getTelegramPublicationChannels(projectId: string) {
+    const channelRows = await this.db
+      .select({
+        id: channelConfigs.id,
+        name: channelConfigs.name,
+        config: channelConfigs.config,
+      })
+      .from(channelConfigs)
+      .where(
+        and(
+          eq(channelConfigs.projectId, projectId),
+          eq(channelConfigs.purpose, "publication"),
+          eq(channelConfigs.channel, "telegram"),
+          eq(channelConfigs.isActive, true),
+        ),
+      );
+
+    return channelRows
+      .map((ch) => {
+        const cfg = (ch.config ?? {}) as Record<string, unknown>;
+        const channelId = String(cfg.channelId ?? "");
+        const url = telegramPublicUrl(channelId);
+        if (!url) return null;
+        return {
+          name: ch.name ?? channelId,
+          url,
+          channelId,
+        };
+      })
+      .filter((x): x is NonNullable<typeof x> => Boolean(x));
+  }
+
+  async getTelegramBotMenu(projectId: string) {
+    const [input] = await this.db
+      .select()
+      .from(channelConfigs)
+      .where(
+        and(
+          eq(channelConfigs.projectId, projectId),
+          eq(channelConfigs.channel, "telegram"),
+          eq(channelConfigs.purpose, "listing_input"),
+        ),
+      )
+      .limit(1);
+
+    const inputCfg = (input?.config ?? {}) as Record<string, unknown>;
+    const menu = this.parseBotMenu(inputCfg);
+    const channels = await this.getTelegramPublicationChannels(projectId);
+
+    return { data: { menu, channels } };
+  }
+
   async getTelegramSettings(projectId: string) {
     const [project] = await this.db
       .select()
@@ -2106,6 +2219,7 @@ export class AdminService {
 
     const input = rows.find((r) => r.purpose === "listing_input");
     const inputCfg = (input?.config ?? {}) as Record<string, unknown>;
+    const menu = this.parseBotMenu(inputCfg);
 
     return {
       data: {
@@ -2118,6 +2232,7 @@ export class AdminService {
         isActive: input?.isActive ?? false,
         botUsername: inputCfg.botUsername ? String(inputCfg.botUsername) : null,
         inputChannelId: input?.id ?? null,
+        ...menu,
       },
     };
   }
@@ -2134,40 +2249,58 @@ export class AdminService {
     const defaultWebhook = `${this.webhookBaseUrl()}/webhooks/telegram`;
     const webhookUrl = (dto.webhookUrl?.trim() || defaultWebhook).trim();
 
+    const [existing] = await this.db
+      .select()
+      .from(channelConfigs)
+      .where(
+        and(
+          eq(channelConfigs.projectId, dto.projectId),
+          eq(channelConfigs.channel, "telegram"),
+          eq(channelConfigs.purpose, "listing_input"),
+        ),
+      )
+      .limit(1);
+
+    const prevCfg = (existing?.config ?? {}) as Record<string, unknown>;
+    const menu = this.buildBotMenuConfig(prevCfg, dto);
+    let nextCfg: Record<string, unknown> = { ...prevCfg, menu };
+
     if (dto.botToken) {
       const me = await this.telegramGetMe(dto.botToken);
       const botUsername = me.username ? `@${me.username}` : null;
+      nextCfg = {
+        ...nextCfg,
+        botToken: dto.botToken.trim(),
+        botUsername,
+        webhookUrl,
+      };
+    } else if (dto.webhookUrl !== undefined) {
+      nextCfg = { ...nextCfg, webhookUrl };
+    }
+
+    const hasMenuUpdate =
+      dto.supportMessage !== undefined ||
+      dto.siteUrl !== undefined ||
+      dto.supportLabel !== undefined ||
+      dto.siteLabel !== undefined ||
+      dto.channelsLabel !== undefined ||
+      dto.showSupport !== undefined ||
+      dto.showSite !== undefined ||
+      dto.showChannels !== undefined;
+
+    if (
+      dto.botToken ||
+      dto.webhookUrl !== undefined ||
+      dto.isActive !== undefined ||
+      hasMenuUpdate ||
+      existing
+    ) {
       await this.upsertTelegramChannel(
         dto.projectId,
         "listing_input",
-        {
-          botToken: dto.botToken.trim(),
-          botUsername,
-          webhookUrl,
-        },
-        isActive,
+        nextCfg,
+        existing ? (dto.isActive ?? existing.isActive) : isActive,
       );
-    } else if (dto.webhookUrl || isActive !== undefined) {
-      const [existing] = await this.db
-        .select()
-        .from(channelConfigs)
-        .where(
-          and(
-            eq(channelConfigs.projectId, dto.projectId),
-            eq(channelConfigs.channel, "telegram"),
-            eq(channelConfigs.purpose, "listing_input"),
-          ),
-        )
-        .limit(1);
-      if (existing) {
-        const cfg = existing.config as Record<string, unknown>;
-        await this.upsertTelegramChannel(
-          dto.projectId,
-          "listing_input",
-          { ...cfg, webhookUrl },
-          isActive,
-        );
-      }
     }
 
     await this.notifyTelegramBotReload();

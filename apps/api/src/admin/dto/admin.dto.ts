@@ -355,7 +355,6 @@ export class TelegramSettingsDto {
   @IsString()
   botToken?: string;
 
-
   @IsOptional()
   @IsString()
   webhookUrl?: string;
@@ -363,6 +362,38 @@ export class TelegramSettingsDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsString()
+  supportMessage?: string;
+
+  @IsOptional()
+  @IsString()
+  siteUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  supportLabel?: string;
+
+  @IsOptional()
+  @IsString()
+  siteLabel?: string;
+
+  @IsOptional()
+  @IsString()
+  channelsLabel?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  showSupport?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  showSite?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  showChannels?: boolean;
 }
 
 export class BrandingUpdateDto {

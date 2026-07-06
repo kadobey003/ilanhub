@@ -6,7 +6,8 @@ import { formatAmountUah } from "@ilanhub/shared";
 
 import { api } from "./api.js";
 
-import { mainMenuKeyboard, paymentPendingKeyboard, submittedListingKeyboard } from "./keyboards.js";
+import { paymentPendingKeyboard, submittedListingKeyboard } from "./keyboards.js";
+import { mainMenuKeyboard } from "./bot-menu.js";
 
 
 
@@ -288,7 +289,7 @@ export async function handleSuccessfulPayment(ctx: Context): Promise<void> {
 
     await ctx.reply(i18n.bot.paymentFailed, {
 
-      reply_markup: mainMenuKeyboard(),
+      reply_markup: await mainMenuKeyboard(),
 
     });
 

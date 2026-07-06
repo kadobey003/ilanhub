@@ -76,6 +76,20 @@ export interface BotListingDetail {
   mediaUrls: string[];
 }
 
+export interface BotMenuData {
+  menu: {
+    supportMessage: string;
+    siteUrl: string;
+    supportLabel: string;
+    siteLabel: string;
+    channelsLabel: string;
+    showSupport: boolean;
+    showSite: boolean;
+    showChannels: boolean;
+  };
+  channels: Array<{ name: string; url: string; channelId: string }>;
+}
+
 export const api = {
   getTelegramConfig: () =>
     apiFetch<{
@@ -84,6 +98,8 @@ export const api = {
       botUsername: string | null;
       paymentProviderToken: string | null;
     }>("/api/bots/telegram/config"),
+  getTelegramMenu: () =>
+    apiFetch<{ data: BotMenuData }>("/api/bots/telegram/menu"),
   getProjects: () => apiFetch<{ data: import("@ilanhub/shared").ApiProject[] }>("/api/projects"),
   getCategories: (projectId: string) =>
     apiFetch<{ data: import("@ilanhub/shared").ApiCategory[] }>(

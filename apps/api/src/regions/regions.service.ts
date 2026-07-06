@@ -1,6 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import {
+  channelConfigs,
   cities,
   districts,
   projectChannelCities,
@@ -21,25 +22,26 @@ export class RegionsService {
       .limit(1);
     if (!project) return null;
 
-    const scoped = await this.db
-      .selectDistinct({ cityId: projectChannelCities.cityId })
-      .from(projectChannelCities)
-      .where(eq(projectChannelCities.projectId, projectId));
-
-    const scopedIds = scoped.map((row) => row.cityId);
-    if (!scopedIds.length) {
-      return this.db
-        .select()
-        .from(cities)
-        .where(eq(cities.isActive, true))
-        .orderBy(asc(cities.sortOrder));
-    }
-
     return this.db
-      .select()
-      .from(cities)
-      .where(and(eq(cities.isActive, true), inArray(cities.id, scopedIds)))
-      .orderBy(asc(cities.sortOrder));
+      .selectDistinct({
+        id: cities.id,
+        name: cities.name,
+        slug: cities.slug,
+      })
+      .from(projectChannelCities)
+      .innerJoin(
+        channelConfigs,
+        eq(projectChannelCities.channelConfigId, channelConfigs.id),
+      )
+      .innerJoin(cities, eq(projectChannelCities.cityId, cities.id))
+      .where(
+        and(
+          eq(projectChannelCities.projectId, projectId),
+          eq(channelConfigs.isActive, true),
+          eq(cities.isActive, true),
+        ),
+      )
+      .orderBy(asc(cities.sortOrder), asc(cities.name));
   }
 
   async findCitiesByProjectSlug(projectSlug: string) {

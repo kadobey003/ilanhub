@@ -31,6 +31,21 @@ export class BotsController {
     if (secret !== expected) throw new UnauthorizedException("Invalid bot secret");
   }
 
+  @Get("telegram/menu")
+  async telegramMenu(@Headers("x-bot-secret") secret: string) {
+    this.checkSecret(secret);
+    const config = await this.adminService.getActiveTelegramBotConfig();
+    if (!config?.projectId) {
+      return {
+        data: {
+          menu: this.adminService.parseBotMenu({}),
+          channels: [],
+        },
+      };
+    }
+    return this.adminService.getTelegramBotMenu(config.projectId);
+  }
+
   @Get("telegram/config")
   async telegramConfig(@Headers("x-bot-secret") secret: string) {
     this.checkSecret(secret);

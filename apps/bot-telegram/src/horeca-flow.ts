@@ -29,6 +29,7 @@ import {
   vacancyCountKeyboard,
   yesNoKeyboard,
 } from "./keyboards.js";
+import { mainMenuKeyboard } from "./bot-menu.js";
 import { replyOrEditText } from "./messaging.js";
 import { createSession, getSession, saveSession } from "./session.js";
 
@@ -234,6 +235,12 @@ export async function startHorecaFlow(
   await saveSession(session);
 
   const { data: cities } = await api.getCities(projectId);
+  if (!cities.length) {
+    await replyOrEditText(ctx, i18n.bot.noCitiesConfigured, {
+      reply_markup: await mainMenuKeyboard(),
+    });
+    return;
+  }
   const text = `${i18n.bot.horeca.intro}\n\n${i18n.bot.horeca.selectCity}`;
   const markup = cityKeyboard(cities);
   await replyOrEditText(ctx, text, { reply_markup: markup });

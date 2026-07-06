@@ -27,11 +27,11 @@ import { HorecaStep } from "@ilanhub/shared";
 import {
   contactKeyboard,
   horecaContactKeyboard,
-  mainMenuKeyboard,
   paymentPendingKeyboard,
   projectKeyboard,
   submittedListingKeyboard,
 } from "../keyboards.js";
+import { getBotMenu, mainMenuKeyboard, replyChannelsList } from "../bot-menu.js";
 import { replyOrEditText } from "../messaging.js";
 import {
   clearSession,
@@ -53,7 +53,6 @@ import { showWelcome } from "../welcome.js";
 import { registerAdminHandlers } from "../admin-handlers.js";
 
 const CHANNEL = "telegram" as const;
-const SITE_URL = process.env.PUBLIC_URL ?? "https://ilanhub.com";
 
 async function promptProjectSelection(ctx: Context): Promise<void> {
   const { data: projects } = await api.getProjects();
@@ -101,7 +100,7 @@ async function handleStart(ctx: Context): Promise<void> {
     );
 
     if (result.action === "expired") {
-      await ctx.reply(i18n.bot.authLinkExpired, { reply_markup: mainMenuKeyboard() });
+      await ctx.reply(i18n.bot.authLinkExpired, { reply_markup: await mainMenuKeyboard() });
       return;
     }
     if (result.action === "request_contact") {
@@ -115,7 +114,7 @@ async function handleStart(ctx: Context): Promise<void> {
   }
 
   await clearSession(CHANNEL, userId);
-  await showWelcome(ctx, mainMenuKeyboard());
+  await showWelcome(ctx, await mainMenuKeyboard());
 }
 
 async function handleContinue(ctx: Context): Promise<void> {
@@ -156,9 +155,9 @@ async function handleAction(ctx: Context): Promise<void> {
     await clearSession(CHANNEL, userId);
     const msg = ctx.callbackQuery?.message;
     if (msg) {
-      await showWelcome(ctx, mainMenuKeyboard(), { edit: true });
+      await showWelcome(ctx, await mainMenuKeyboard(), { edit: true });
     } else {
-      await showWelcome(ctx, mainMenuKeyboard());
+      await showWelcome(ctx, await mainMenuKeyboard());
     }
     return;
   }
@@ -318,18 +317,24 @@ async function handleAction(ctx: Context): Promise<void> {
     await ctx.answerCallbackQuery();
     const msg = ctx.callbackQuery?.message;
     if (msg) {
-      await showWelcome(ctx, mainMenuKeyboard(), { edit: true });
+      await showWelcome(ctx, await mainMenuKeyboard(), { edit: true });
     } else {
-      await showWelcome(ctx, mainMenuKeyboard());
+      await showWelcome(ctx, await mainMenuKeyboard());
     }
     return;
   }
   if (action === "support") {
-    await ctx.reply(i18n.bot.supportMessage);
+    const { menu } = await getBotMenu();
+    await ctx.reply(menu.supportMessage);
     return;
   }
   if (action === "site") {
-    await ctx.reply(`🌐 ${SITE_URL}`);
+    const { menu } = await getBotMenu();
+    await ctx.reply(`🌐 ${menu.siteUrl}`);
+    return;
+  }
+  if (action === "channels") {
+    await replyChannelsList((text, extra) => ctx.reply(text, extra));
     return;
   }
 }
@@ -357,7 +362,7 @@ async function handleProjectSelect(ctx: Context): Promise<void> {
 
   if (slug !== HORECA_SLUG) {
     await ctx.editMessageText(i18n.bot.categoryComingSoon, {
-      reply_markup: mainMenuKeyboard(),
+      reply_markup: await mainMenuKeyboard(),
     });
     return;
   }
@@ -436,7 +441,7 @@ async function handleContact(ctx: Context): Promise<void> {
     await ctx.reply(i18n.bot.authPhoneLinked, {
       reply_markup: { remove_keyboard: true },
     });
-    await showWelcome(ctx, mainMenuKeyboard());
+    await showWelcome(ctx, await mainMenuKeyboard());
   } catch (err) {
     const msg = String(err);
     if (msg.includes("does not match")) {

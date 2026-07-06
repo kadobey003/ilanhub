@@ -519,6 +519,14 @@ export interface TelegramSettings {
   webhookUrl: string;
   isActive: boolean;
   botUsername: string | null;
+  supportMessage: string;
+  siteUrl: string;
+  supportLabel: string;
+  siteLabel: string;
+  channelsLabel: string;
+  showSupport: boolean;
+  showSite: boolean;
+  showChannels: boolean;
 }
 
 export interface TelegramSettingsForm {
@@ -526,6 +534,14 @@ export interface TelegramSettingsForm {
   botToken?: string;
   webhookUrl?: string;
   isActive?: boolean;
+  supportMessage?: string;
+  siteUrl?: string;
+  supportLabel?: string;
+  siteLabel?: string;
+  channelsLabel?: string;
+  showSupport?: boolean;
+  showSite?: boolean;
+  showChannels?: boolean;
 }
 
 export interface BrandingSettings {

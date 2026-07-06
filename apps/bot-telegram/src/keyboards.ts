@@ -9,13 +9,65 @@ import type {
 } from "@ilanhub/shared";
 import { formatAmountUah } from "@ilanhub/shared";
 
-export function mainMenuKeyboard(): InlineKeyboard {
-  return new InlineKeyboard()
+export interface BotMenuConfig {
+  supportMessage: string;
+  siteUrl: string;
+  supportLabel: string;
+  siteLabel: string;
+  channelsLabel: string;
+  showSupport: boolean;
+  showSite: boolean;
+  showChannels: boolean;
+}
+
+export function buildMainMenuKeyboard(menu: BotMenuConfig): InlineKeyboard {
+  const kb = new InlineKeyboard()
     .text(i18n.bot.newListing, "action:new")
-    .text(i18n.bot.myListings, "action:my")
-    .row()
-    .text(i18n.bot.support, "action:support")
-    .text(i18n.bot.ourSite, "action:site");
+    .text(i18n.bot.myListings, "action:my");
+
+  const secondRow: Array<{ label: string; action: string }> = [];
+  if (menu.showSupport) {
+    secondRow.push({ label: menu.supportLabel, action: "support" });
+  }
+  if (menu.showSite) {
+    secondRow.push({ label: menu.siteLabel, action: "site" });
+  }
+  if (secondRow.length) {
+    kb.row();
+    secondRow.forEach((btn) => kb.text(btn.label, `action:${btn.action}`));
+  }
+
+  if (menu.showChannels) {
+    kb.row().text(menu.channelsLabel, "action:channels");
+  }
+
+  return kb;
+}
+
+export function channelsKeyboard(
+  channels: Array<{ name: string; url: string }>,
+): InlineKeyboard {
+  const kb = new InlineKeyboard();
+  channels.forEach((ch, i) => {
+    if (i > 0) kb.row();
+    kb.url(ch.name, ch.url);
+  });
+  kb.row().text(i18n.bot.mainMenu, "action:menu");
+  return kb;
+}
+
+/** @deprecated use mainMenuKeyboard from bot-menu.ts */
+export function defaultMainMenuKeyboard(): InlineKeyboard {
+  return buildMainMenuKeyboard({
+    supportMessage: i18n.bot.supportMessage,
+    siteUrl: process.env.PUBLIC_URL ?? "https://ilanhub.com",
+    supportLabel: i18n.bot.support,
+    siteLabel: i18n.bot.ourSite,
+    channelsLabel: i18n.bot.ourChannels,
+    showSupport: true,
+    showSite: true,
+    showChannels: true,
+  });
 }
 
 export function categoryKeyboard(projects: ApiProject[]): InlineKeyboard {
@@ -40,7 +92,14 @@ export function horecaCategoryKeyboard(categories: ApiCategory[]): InlineKeyboar
 
 export function cityKeyboard(cities: ApiCity[]): InlineKeyboard {
   const kb = new InlineKeyboard();
-  cities.forEach((c, i) => {
+  const seen = new Set<string>();
+  const unique = cities.filter((c) => {
+    const key = c.slug || c.id;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  unique.forEach((c, i) => {
     if (i > 0 && i % 2 === 0) kb.row();
     kb.text(c.name, `city:${c.id}`);
   });
