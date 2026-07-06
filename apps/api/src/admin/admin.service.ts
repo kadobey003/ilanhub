@@ -37,6 +37,7 @@ import {
   pinTelegramMessage,
   resolveTelegramBotToken,
 } from "./telegram-channel.util.js";
+import { hashPassword } from "./password.util.js";
 import type {
   AdminListingUpdateDto,
   AdminManagerCreateDto,
