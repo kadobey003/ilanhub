@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { BRAND_LOGO_PATH, BRAND_NAME } from "@ilanhub/shared";
 
+const BRAND_NAME = "UAREKLAMHUB";
+const BRAND_LOGO_PATH = "/logo.png";
 const FALLBACK_LOGO = `${import.meta.env.BASE_URL}logo.png`.replace(/\/{2,}/g, "/");
 
 interface BrandLogoProps {
