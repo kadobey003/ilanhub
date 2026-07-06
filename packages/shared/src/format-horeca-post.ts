@@ -129,7 +129,7 @@ function fmtVacancyBlock(v: VacancyDisplay, html: boolean): string {
   return lines.join("\n");
 }
 
-function extractBenefitItems(text: string | null | undefined): string[] {
+export function extractBenefitItems(text: string | null | undefined): string[] {
   if (!text?.trim()) return [];
   const skip = /^(📌|🔁|📅)/;
   return text
