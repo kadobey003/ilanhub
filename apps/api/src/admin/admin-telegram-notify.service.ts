@@ -19,6 +19,7 @@ import { UserMessagingService } from "./user-messaging.service.js";
 import {
   adminListingInlineKeyboard,
   buildAdminListingNotifyMessage,
+  buildAdminModerationActionMessage,
   type AdminListingEvent,
   type AdminListingSnapshot,
 } from "./admin-telegram-group.util.js";
@@ -134,6 +135,46 @@ export class AdminTelegramNotifyService {
     } catch (err) {
       this.logger.warn(
         `Admin notify error (${event}, ${listingId}): ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  async notifyModerationAction(
+    listingId: string,
+    action: "approve" | "reject" | "cancel" | "confirm_payment" | "republish",
+    actorName: string,
+    note?: string | null,
+  ): Promise<void> {
+    try {
+      const snapshot = await this.loadSnapshot(listingId);
+      if (!snapshot) return;
+
+      const group = await this.adminService.getAdminGroupForProject(
+        snapshot.projectId,
+      );
+      if (!isModerationActionsEnabled(group)) return;
+
+      const chatId = group.enabled ? group.chatId : null;
+      if (!chatId) return;
+
+      const text = buildAdminModerationActionMessage({
+        action,
+        listingTitle: snapshot.title ?? "",
+        listingId,
+        actorName,
+        note,
+      });
+      const result = await this.userMessaging.sendTelegram(chatId, text, {
+        parseMode: "HTML",
+      });
+      if (!result.ok) {
+        this.logger.warn(`Admin moderation notify failed: ${result.error}`);
+      }
+    } catch (err) {
+      this.logger.warn(
+        `Admin moderation notify error (${action}, ${listingId}): ${
           err instanceof Error ? err.message : String(err)
         }`,
       );

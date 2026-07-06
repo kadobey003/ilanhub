@@ -46,6 +46,39 @@ export function shortListingId(id: string): string {
   return id.slice(0, 8);
 }
 
+export function buildAdminModerationActionMessage(input: {
+  action: "approve" | "reject" | "cancel" | "confirm_payment" | "republish";
+  listingTitle: string;
+  listingId: string;
+  actorName: string;
+  note?: string | null;
+}): string {
+  const sid = shortListingId(input.listingId);
+  const title = esc(input.listingTitle?.trim() || "Без назви");
+  const header =
+    input.action === "approve"
+      ? "✅ СХВАЛЕНО"
+      : input.action === "reject"
+        ? "❌ ВІДХИЛЕНО"
+        : input.action === "cancel"
+          ? "🚫 СКАСОВАНО"
+          : input.action === "confirm_payment"
+            ? "💳 ОПЛАТУ ПІДТВЕРДЖЕНО"
+            : "📣 ПОВТОРНА ПУБЛІКАЦІЯ";
+
+  const lines = [
+    `<b>${header}</b>`,
+    "",
+    `📄 <b>${title}</b>`,
+    `🆔 <code>${sid}</code>`,
+    `👤 <b>Адмін:</b> ${esc(input.actorName)}`,
+  ];
+  if (input.note?.trim()) {
+    lines.push(`📝 ${esc(input.note.trim())}`);
+  }
+  return lines.join("\n");
+}
+
 export function buildAdminListingNotifyMessage(
   event: AdminListingEvent,
   listing: AdminListingSnapshot,

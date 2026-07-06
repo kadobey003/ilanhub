@@ -238,9 +238,11 @@ export class AdminBotService {
     });
 
     const sid = shortListingId(id);
-    void this.adminNotify.notifyAdminText(
-      `✅ <b>Схвалено</b> <code>${sid}</code>${actorName ? ` — ${actorName}` : ""}`,
-      { projectId: listing.projectId },
+    void this.adminNotify.notifyModerationAction(
+      id,
+      "approve",
+      actorName ?? "Telegram",
+      note?.trim(),
     );
     return `✅ Оголошення <code>${sid}</code> схвалено та поставлено в чергу публікації.`;
   }
@@ -271,9 +273,11 @@ export class AdminBotService {
     });
 
     const sid = shortListingId(id);
-    void this.adminNotify.notifyAdminText(
-      `❌ <b>Відхилено</b> <code>${sid}</code>${actorName ? ` — ${actorName}` : ""}`,
-      { projectId: listing.projectId },
+    void this.adminNotify.notifyModerationAction(
+      id,
+      "reject",
+      actorName ?? "Telegram",
+      note?.trim(),
     );
     return `❌ Оголошення <code>${sid}</code> відхилено.`;
   }

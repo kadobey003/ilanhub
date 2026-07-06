@@ -12,6 +12,7 @@ import {
 } from "@nestjs/common";
 import { AdminGuard } from "./admin.guard.js";
 import { AdminService } from "./admin.service.js";
+import { AdminTelegramNotifyService } from "./admin-telegram-notify.service.js";
 import { SiteService } from "../site/site.service.js";
 import { UserMessagingService } from "./user-messaging.service.js";
 import {
@@ -46,9 +47,25 @@ import {
 export class AdminController {
   constructor(
     private readonly adminService: AdminService,
+    private readonly adminNotify: AdminTelegramNotifyService,
     private readonly userMessaging: UserMessagingService,
     private readonly siteService: SiteService,
   ) {}
+
+  private async notifyModeration(
+    listingId: string,
+    action: "approve" | "reject" | "cancel" | "confirm_payment" | "republish",
+    adminId: string,
+    note?: string,
+  ) {
+    const actorName = await this.adminService.getManagerDisplayName(adminId);
+    void this.adminNotify.notifyModerationAction(
+      listingId,
+      action,
+      actorName,
+      note,
+    );
+  }
 
   @Get("dashboard")
   dashboard() {
@@ -69,44 +86,56 @@ export class AdminController {
   }
 
   @Post("listings/:id/approve")
-  approve(
+  async approve(
     @Param("id") id: string,
     @Body() dto: ModerationNoteDto,
     @Req() req: { adminId: string; adminRole: string },
   ) {
-    return this.adminService.approveListing(id, dto, req.adminId, req.adminRole);
+    const result = await this.adminService.approveListing(id, dto, req.adminId, req.adminRole);
+    void this.notifyModeration(id, "approve", req.adminId, dto.note);
+    return result;
   }
 
   @Post("listings/:id/reject")
-  reject(
+  async reject(
     @Param("id") id: string,
     @Body() dto: ModerationNoteDto,
     @Req() req: { adminId: string; adminRole: string },
   ) {
-    return this.adminService.rejectListing(id, dto, req.adminId, req.adminRole);
+    const result = await this.adminService.rejectListing(id, dto, req.adminId, req.adminRole);
+    void this.notifyModeration(id, "reject", req.adminId, dto.note);
+    return result;
   }
 
   @Post("listings/:id/cancel")
-  cancel(
+  async cancel(
     @Param("id") id: string,
     @Body() dto: ModerationNoteDto,
     @Req() req: { adminId: string; adminRole: string },
   ) {
-    return this.adminService.cancelListing(id, dto, req.adminId, req.adminRole);
+    const result = await this.adminService.cancelListing(id, dto, req.adminId, req.adminRole);
+    void this.notifyModeration(id, "cancel", req.adminId, dto.note);
+    return result;
   }
 
   @Post("listings/:id/republish")
-  republish(@Param("id") id: string, @Req() req: { adminId: string; adminRole: string }) {
-    return this.adminService.republishListing(id, req.adminId, req.adminRole);
+  async republish(@Param("id") id: string, @Req() req: { adminId: string; adminRole: string }) {
+    const result = await this.adminService.republishListing(id, req.adminId, req.adminRole);
+    void this.notifyModeration(id, "republish", req.adminId);
+    return result;
   }
 
   @Patch("listings/:id")
-  updateListing(
+  async updateListing(
     @Param("id") id: string,
     @Body() dto: AdminListingUpdateDto,
     @Req() req: { adminId: string; adminRole: string },
   ) {
-    return this.adminService.updateListing(id, dto, req.adminId, req.adminRole);
+    const result = await this.adminService.updateListing(id, dto, req.adminId, req.adminRole);
+    if (result.paymentConfirmed) {
+      void this.notifyModeration(id, "confirm_payment", req.adminId);
+    }
+    return result;
   }
 
   @Get("users")

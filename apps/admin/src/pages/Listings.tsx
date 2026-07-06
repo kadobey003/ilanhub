@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../auth";
-import { api, type ListingDetail, type ListingRow } from "../api/client";
+import { api, type ListingDetail, type ListingRow, type ModerationLogEntry } from "../api/client";
 
 const PRIMARY_STATUS = "pending_moderation";
 const ALL_STATUSES = "";
@@ -39,6 +39,53 @@ function fmtTime(iso: string) {
     day: "2-digit",
     month: "short",
   });
+}
+
+function moderationChips(moderation?: ListingRow["moderation"]) {
+  if (!moderation) return [];
+  const chips: string[] = [];
+  if (moderation.paymentConfirmedBy) {
+    chips.push(`💳 ${moderation.paymentConfirmedBy}`);
+  }
+  if (moderation.approvedBy) {
+    chips.push(`✓ ${moderation.approvedBy}`);
+  }
+  if (moderation.rejectedBy) {
+    chips.push(`✕ ${moderation.rejectedBy}`);
+  }
+  if (moderation.cancelledBy) {
+    chips.push(`🚫 ${moderation.cancelledBy}`);
+  }
+  if (moderation.republishedBy) {
+    chips.push(`📣 ${moderation.republishedBy}`);
+  }
+  return chips;
+}
+
+function ModerationHistory({ logs }: { logs?: ModerationLogEntry[] }) {
+  if (!logs?.length) return null;
+  return (
+    <div className="mod-history">
+      <div className="mod-history-title">Історія дій</div>
+      <ul className="mod-timeline">
+        {logs.map((log) => (
+          <li key={log.id} className="mod-timeline-item">
+            <span className={`mod-timeline-dot mod-timeline-${log.action}`} />
+            <div className="mod-timeline-body">
+              <div>
+                <span className="mod-timeline-action">{log.actionLabel}</span>
+                <span className="mod-timeline-date">{fmtTime(log.createdAt)}</span>
+              </div>
+              <div className="mod-timeline-note">
+                <strong>{log.moderatorName}</strong>
+                {log.note ? ` — ${log.note}` : ""}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 function fmtPrice(price?: number, currency?: string) {
@@ -332,6 +379,9 @@ export function Listings() {
                     {r.city && <span>{r.city}</span>}
                     <span>{CHANNEL_LABELS[r.sourceChannel] ?? r.sourceChannel}</span>
                     <span>{fmtTime(r.createdAt)}</span>
+                    {moderationChips(r.moderation).map((chip) => (
+                      <span key={chip} className="mod-queue-chip muted">{chip}</span>
+                    ))}
                   </span>
                 </div>
               </button>
@@ -419,6 +469,8 @@ export function Listings() {
                   Скасувати
                 </button>
               </div>
+
+              <ModerationHistory logs={detail?.moderationLogs} />
             </>
           )}
         </section>

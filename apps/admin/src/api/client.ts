@@ -176,6 +176,28 @@ export const api = {
     }),
 };
 
+export interface ModerationSummary {
+  approvedBy: string | null;
+  approvedAt: string | null;
+  rejectedBy: string | null;
+  rejectedAt: string | null;
+  cancelledBy: string | null;
+  cancelledAt: string | null;
+  paymentConfirmedBy: string | null;
+  paymentConfirmedAt: string | null;
+  republishedBy: string | null;
+  republishedAt: string | null;
+}
+
+export interface ModerationLogEntry {
+  id: string;
+  action: string;
+  actionLabel: string;
+  note?: string | null;
+  moderatorName: string;
+  createdAt: string;
+}
+
 export interface ListingRow {
   id: string;
   title: string;
@@ -193,6 +215,7 @@ export interface ListingRow {
   userPhone?: string;
   sourceChannel: string;
   createdAt: string;
+  moderation?: ModerationSummary;
 }
 
 export interface ListingDetail extends ListingRow {
@@ -201,12 +224,7 @@ export interface ListingDetail extends ListingRow {
   city?: string | null | { name: string; slug?: string };
   user?: { name?: string | null; phone?: string | null };
   media?: { id: string; url: string; sortOrder?: number }[];
-  moderationLogs?: {
-    id?: string;
-    action: string;
-    note?: string | null;
-    createdAt: string;
-  }[];
+  moderationLogs?: ModerationLogEntry[];
 }
 
 export interface ProjectRow {

@@ -1092,6 +1092,9 @@ tbody tr:last-child td { border-bottom: none; }
 .mod-timeline-approve { background: var(--success); }
 .mod-timeline-reject { background: var(--danger); }
 .mod-timeline-request_changes { background: var(--warning); }
+.mod-timeline-confirm_payment { background: #0ea5e9; }
+.mod-timeline-cancel { background: #64748b; }
+.mod-timeline-republish { background: var(--accent); }
 
 .mod-timeline-body { flex: 1; }
 .mod-timeline-action { font-weight: 600; font-size: 0.8125rem; margin-right: 0.5rem; }

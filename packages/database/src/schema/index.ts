@@ -73,6 +73,9 @@ export const moderationActionEnum = pgEnum("moderation_action", [
   "approve",
   "reject",
   "request_changes",
+  "confirm_payment",
+  "cancel",
+  "republish",
 ]);
 
 export const adminRoleEnum = pgEnum("admin_role", ["manager", "super_admin"]);

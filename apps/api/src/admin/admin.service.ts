@@ -59,6 +59,13 @@ import type {
   CategoryUpdateDto,
 } from "./dto/admin.dto.js";
 import { UserMessagingService } from "./user-messaging.service.js";
+import {
+  applyModerationLog,
+  emptyModerationSummary,
+  enrichModerationLogs,
+  type ModerationLogRow,
+  type ModerationSummary,
+} from "./moderation-log.util.js";
 
 function detectChannel(user: {
   telegramId: string | null;
@@ -218,6 +225,9 @@ export class AdminService {
       : base
     ).orderBy(desc(listings.createdAt));
 
+    const listingIds = rows.map((r) => r.listing.id);
+    const moderationSummaries = await this.resolveModerationSummaries(listingIds);
+
     return {
       data: rows.map((r) => ({
         id: r.listing.id,
@@ -238,6 +248,7 @@ export class AdminService {
         sourceChannel: detectChannel(r.user),
         createdAt: r.listing.createdAt,
         updatedAt: r.listing.updatedAt,
+        moderation: moderationSummaries.get(r.listing.id) ?? emptyModerationSummary(),
       })),
     };
   }
@@ -273,6 +284,8 @@ export class AdminService {
       .where(eq(moderationLogs.listingId, id))
       .orderBy(desc(moderationLogs.createdAt));
 
+    const enrichedLogs = await this.enrichLogsWithModeratorNames(logs);
+
     return {
       data: {
         ...row.listing,
@@ -282,20 +295,136 @@ export class AdminService {
         user: row.user,
         sourceChannel: detectChannel(row.user),
         media,
-        moderationLogs: logs,
+        moderationLogs: enrichedLogs,
       },
     };
   }
 
-  async approveListing(id: string, dto: ModerationNoteDto, adminId?: string, adminRole?: string) {
-    await this.assertListingAccess(id, adminId, adminRole);
+  async getManagerDisplayName(adminId?: string): Promise<string> {
+    if (!adminId) return "Адмін";
+    const [manager] = await this.db
+      .select({ name: adminManagers.name, email: adminManagers.email })
+      .from(adminManagers)
+      .where(eq(adminManagers.id, adminId))
+      .limit(1);
+    if (manager?.name) return manager.name;
+    if (manager?.email) return manager.email;
+
+    const [user] = await this.db
+      .select({ name: users.name, email: users.email })
+      .from(users)
+      .where(eq(users.id, adminId))
+      .limit(1);
+    return user?.name ?? user?.email ?? "Адмін";
+  }
+
+  private async loadModeratorNameMap(
+    moderatorIds: string[],
+  ): Promise<Map<string, { email: string | null; name: string | null }>> {
+    const map = new Map<string, { email: string | null; name: string | null }>();
+    if (!moderatorIds.length) return map;
+
+    const userRows = await this.db
+      .select({ id: users.id, email: users.email, name: users.name })
+      .from(users)
+      .where(inArray(users.id, moderatorIds));
+    for (const row of userRows) {
+      map.set(row.id, { email: row.email, name: row.name });
+    }
+    return map;
+  }
+
+  private resolveModeratorDisplayName(
+    moderatorId: string,
+    email: string | null,
+    userName: string | null,
+    managerByEmail: Map<string, string>,
+  ): string {
+    if (email) {
+      const fromManager = managerByEmail.get(email.toLowerCase());
+      if (fromManager) return fromManager;
+    }
+    return userName ?? email ?? "Адмін";
+  }
+
+  private async loadManagerByEmail(): Promise<Map<string, string>> {
+    const managers = await this.db
+      .select({ name: adminManagers.name, email: adminManagers.email })
+      .from(adminManagers);
+    return new Map(managers.map((m) => [m.email.toLowerCase(), m.name]));
+  }
+
+  private async enrichLogsWithModeratorNames(logs: ModerationLogRow[]) {
+    const moderatorIds = [...new Set(logs.map((l) => l.moderatorId))];
+    const userMeta = await this.loadModeratorNameMap(moderatorIds);
+    const managerByEmail = await this.loadManagerByEmail();
+    return enrichModerationLogs(logs, (_id, email, userName) =>
+      this.resolveModeratorDisplayName(_id, email, userName, managerByEmail),
+      userMeta,
+    );
+  }
+
+  private async resolveModerationSummaries(
+    listingIds: string[],
+  ): Promise<Map<string, ModerationSummary>> {
+    const summaries = new Map<string, ModerationSummary>();
+    if (!listingIds.length) return summaries;
+
+    const logs = await this.db
+      .select({
+        listingId: moderationLogs.listingId,
+        action: moderationLogs.action,
+        note: moderationLogs.note,
+        moderatorId: moderationLogs.moderatorId,
+        userName: users.name,
+        userEmail: users.email,
+        createdAt: moderationLogs.createdAt,
+      })
+      .from(moderationLogs)
+      .innerJoin(users, eq(moderationLogs.moderatorId, users.id))
+      .where(inArray(moderationLogs.listingId, listingIds))
+      .orderBy(desc(moderationLogs.createdAt));
+
+    const managerByEmail = await this.loadManagerByEmail();
+
+    for (const log of logs) {
+      const summary = summaries.get(log.listingId) ?? emptyModerationSummary();
+      const name = this.resolveModeratorDisplayName(
+        log.moderatorId,
+        log.userEmail,
+        log.userName,
+        managerByEmail,
+      );
+      applyModerationLog(
+        summary,
+        log.action,
+        log.note,
+        name,
+        log.createdAt.toISOString(),
+      );
+      summaries.set(log.listingId, summary);
+    }
+    return summaries;
+  }
+
+  private async logModerationAction(
+    listingId: string,
+    action: "approve" | "reject" | "confirm_payment" | "cancel" | "republish",
+    adminId: string | undefined,
+    note?: string | null,
+  ): Promise<void> {
     const moderatorId = await this.moderatorId(adminId);
     await this.db.insert(moderationLogs).values({
-      listingId: id,
+      listingId,
       moderatorId,
-      action: "approve",
-      note: dto.note,
+      action,
+      note: note ?? null,
     });
+  }
+
+  async approveListing(id: string, dto: ModerationNoteDto, adminId?: string, adminRole?: string) {
+    await this.assertListingAccess(id, adminId, adminRole);
+    await this.logModerationAction(id, "approve", adminId, dto.note);
 
     const [row] = await this.db
       .update(listings)
@@ -328,6 +457,7 @@ export class AdminService {
     if (!["approved", "published", "publishing"].includes(listing.status)) {
       throw new BadRequestException("Listing is not ready for publication");
     }
+    await this.logModerationAction(id, "republish", adminId);
     await this.publishQueue.add("publish", { listingId: id });
     void this.userMessaging.notifyListingModeration(
       { userId: listing.userId, title: listing.title },
@@ -338,13 +468,7 @@ export class AdminService {
 
   async rejectListing(id: string, dto: ModerationNoteDto, adminId?: string, adminRole?: string) {
     await this.assertListingAccess(id, adminId, adminRole);
-    const moderatorId = await this.moderatorId(adminId);
-    await this.db.insert(moderationLogs).values({
-      listingId: id,
-      moderatorId,
-      action: "reject",
-      note: dto.note,
-    });
+    await this.logModerationAction(id, "reject", adminId, dto.note);
 
     const [row] = await this.db
       .update(listings)
@@ -363,13 +487,8 @@ export class AdminService {
 
   async cancelListing(id: string, dto: ModerationNoteDto, adminId?: string, adminRole?: string) {
     await this.assertListingAccess(id, adminId, adminRole);
-    const moderatorId = await this.moderatorId(adminId);
-    await this.db.insert(moderationLogs).values({
-      listingId: id,
-      moderatorId,
-      action: "reject",
-      note: dto.note ?? "Скасовано адміністратором",
-    });
+    const note = dto.note ?? "Скасовано адміністратором";
+    await this.logModerationAction(id, "cancel", adminId, note);
 
     const [row] = await this.db
       .update(listings)
@@ -409,17 +528,24 @@ export class AdminService {
       .returning();
     if (!row) throw new NotFoundException("Listing not found");
 
+    let paymentConfirmed = false;
     if (
       dto.status === "pending_moderation" &&
       existing.status === "pending_payment"
     ) {
+      paymentConfirmed = true;
+      await this.logModerationAction(id, "confirm_payment", adminId);
+      await this.db
+        .update(payments)
+        .set({ status: "completed", paidAt: new Date() })
+        .where(and(eq(payments.listingId, id), eq(payments.status, "pending")));
       void this.userMessaging.notifyListingModeration(
         { userId: row.userId, title: row.title },
         "payment_confirmed",
       );
     }
 
-    return { data: row };
+    return { data: row, paymentConfirmed };
   }
 
   async listUsers() {
@@ -1872,7 +1998,7 @@ export class AdminService {
           .limit(100);
 
     const listingIds = [...new Set(rows.map((r) => r.listing.id))];
-    const approverMap = await this.resolveApproverNames(listingIds);
+    const moderationSummaries = await this.resolveModerationSummaries(listingIds);
 
     return {
       data: rows.map((r) => ({
@@ -1888,53 +2014,14 @@ export class AdminService {
         listingTitle: r.listing.title,
         listingIsPinned: r.listing.isPinned,
         listingBoostScore: r.listing.boostScore,
-        approvedByName: approverMap.get(r.listing.id) ?? null,
+        approvedByName: moderationSummaries.get(r.listing.id)?.approvedBy ?? null,
+        moderation: moderationSummaries.get(r.listing.id) ?? emptyModerationSummary(),
         channel: r.channel.channel,
         purpose: r.channel.purpose,
         project: r.project.name,
         projectId: r.project.id,
       })),
     };
-  }
-
-  private async resolveApproverNames(
-    listingIds: string[],
-  ): Promise<Map<string, string>> {
-    const map = new Map<string, string>();
-    if (!listingIds.length) return map;
-
-    const logs = await this.db
-      .select({
-        listingId: moderationLogs.listingId,
-        userName: users.name,
-        userEmail: users.email,
-        createdAt: moderationLogs.createdAt,
-      })
-      .from(moderationLogs)
-      .innerJoin(users, eq(moderationLogs.moderatorId, users.id))
-      .where(
-        and(
-          inArray(moderationLogs.listingId, listingIds),
-          eq(moderationLogs.action, "approve"),
-        ),
-      )
-      .orderBy(desc(moderationLogs.createdAt));
-
-    const managers = await this.db
-      .select({ name: adminManagers.name, email: adminManagers.email })
-      .from(adminManagers);
-    const managerByEmail = new Map(
-      managers.map((m) => [m.email.toLowerCase(), m.name]),
-    );
-
-    for (const log of logs) {
-      if (map.has(log.listingId)) continue;
-      const fromManager = log.userEmail
-        ? managerByEmail.get(log.userEmail.toLowerCase())
-        : undefined;
-      map.set(log.listingId, fromManager ?? log.userName ?? "—");
-    }
-    return map;
   }
 
   async removePublication(id: string, adminId: string) {
