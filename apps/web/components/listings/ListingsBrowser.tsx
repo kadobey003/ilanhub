@@ -9,6 +9,7 @@ import type {
 } from "@/lib/listings-types";
 import { SavedListingsBar } from "@/components/listing/SavedListingsBar";
 import { CityGrid } from "./CityGrid";
+import { CityChips } from "./CityChips";
 import { FeaturedListingsSection } from "./FeaturedListingsSection";
 import { JobListingCard } from "./JobListingCard";
 import { HorecaListingCard } from "@/components/horeca/HorecaListingCard";
