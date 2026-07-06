@@ -35,8 +35,6 @@ import { mainMenuKeyboard, getSiteBaseUrl } from "./bot-menu.js";
 import { replyOrEditText } from "./messaging.js";
 import { createSession, getSession, saveSession } from "./session.js";
 
-import { buildListingUrl } from "@ilanhub/shared";
-
 const HORECA_SLUG = "horeca";
 const MAX_VACANCIES = 3;
 const MIN_PHOTOS = 1;
