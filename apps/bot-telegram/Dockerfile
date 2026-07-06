@@ -20,11 +20,14 @@ COPY packages/i18n ./packages/i18n
 COPY apps/bot-telegram ./apps/bot-telegram
 RUN pnpm --filter @ilanhub/shared build && pnpm --filter @ilanhub/i18n build && pnpm --filter @ilanhub/bot-telegram build
 
+FROM base AS deploy
+COPY --from=build /app /app
+WORKDIR /app
+RUN pnpm deploy --filter=@ilanhub/bot-telegram --prod /out
+
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=build /app/apps/bot-telegram/dist ./dist
-COPY --from=build /app/apps/bot-telegram/package.json ./
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deploy /out/ .
 EXPOSE 3001
 CMD ["node", "dist/main.js"]
