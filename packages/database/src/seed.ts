@@ -24,6 +24,9 @@ export async function seed(connectionString: string) {
       { slug: "kyiv", name: "Київська область", sortOrder: 1 },
       { slug: "lviv", name: "Львівська область", sortOrder: 2 },
       { slug: "odesa", name: "Одеська область", sortOrder: 3 },
+      { slug: "kharkiv", name: "Харківська область", sortOrder: 4 },
+      { slug: "dnipro", name: "Дніпропетровська область", sortOrder: 5 },
+      { slug: "zaporizhzhia", name: "Запорізька область", sortOrder: 6 },
     ])
     .onConflictDoNothing()
     .returning();
@@ -60,6 +63,48 @@ export async function seed(connectionString: string) {
         ])
         .onConflictDoNothing();
     }
+  }
+
+  const lvivRegion = allRegions.find((r) => r.slug === "lviv");
+  if (lvivRegion) {
+    await db
+      .insert(cities)
+      .values([{ regionId: lvivRegion.id, slug: "lviv", name: "Львів", sortOrder: 1 }])
+      .onConflictDoNothing();
+  }
+
+  const odesaRegion = allRegions.find((r) => r.slug === "odesa");
+  if (odesaRegion) {
+    await db
+      .insert(cities)
+      .values([{ regionId: odesaRegion.id, slug: "odesa", name: "Одеса", sortOrder: 1 }])
+      .onConflictDoNothing();
+  }
+
+  const kharkivRegion = allRegions.find((r) => r.slug === "kharkiv");
+  if (kharkivRegion) {
+    await db
+      .insert(cities)
+      .values([{ regionId: kharkivRegion.id, slug: "kharkiv", name: "Харків", sortOrder: 1 }])
+      .onConflictDoNothing();
+  }
+
+  const dniproRegion = allRegions.find((r) => r.slug === "dnipro");
+  if (dniproRegion) {
+    await db
+      .insert(cities)
+      .values([{ regionId: dniproRegion.id, slug: "dnipro", name: "Дніпро", sortOrder: 1 }])
+      .onConflictDoNothing();
+  }
+
+  const zaporizhzhiaRegion = allRegions.find((r) => r.slug === "zaporizhzhia");
+  if (zaporizhzhiaRegion) {
+    await db
+      .insert(cities)
+      .values([
+        { regionId: zaporizhzhiaRegion.id, slug: "zaporizhzhia", name: "Запоріжжя", sortOrder: 1 },
+      ])
+      .onConflictDoNothing();
   }
 
   const projectRows = await db

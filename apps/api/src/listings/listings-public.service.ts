@@ -79,6 +79,17 @@ export class ListingsPublicService {
     return row ?? null;
   }
 
+  async findCitiesByProjectSlug(projectSlug: string) {
+    const project = await this.projectBySlug(projectSlug);
+    if (!project) return null;
+
+    return this.db
+      .select({ slug: cities.slug, name: cities.name })
+      .from(cities)
+      .where(eq(cities.isActive, true))
+      .orderBy(asc(cities.sortOrder));
+  }
+
   async findPublicById(id: string) {
     const [row] = await this.db
       .select({

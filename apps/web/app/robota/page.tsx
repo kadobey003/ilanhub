@@ -1,20 +1,22 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Hero } from "@/components/landing/Hero";
 import { FeatureGrid } from "@/components/landing/FeatureGrid";
 import { CTASection } from "@/components/landing/CTASection";
 import { Button } from "@/components/ui/Button";
-import Link from "next/link";
+import { CityChips } from "@/components/listings/CityChips";
+import { fetchProjectCities } from "@/lib/cities-api";
 
 export const metadata: Metadata = {
   title: "Шукаю роботу",
   description: "Вакансії по всій Україні — офіс, IT, виробництво, логістика",
 };
 
-const cities = ["Київ", "Львів", "Одеса", "Харків", "Дніпро", "Запоріжжя"];
+export default async function RobotaSeekerPage() {
+  const cities = await fetchProjectCities("jobs");
 
-export default function RobotaSeekerPage() {
   return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 pb-nav sm:px-6 md:pb-16">
       <div className="py-8 sm:py-12">
         <Hero
           badge="💼 Для кандидатів"
@@ -22,7 +24,7 @@ export default function RobotaSeekerPage() {
           highlight="у своєму місті"
           subtitle="Тисячі вакансій від перевірених роботодавців. Офіс, IT, склад, будівництво — не плутайте з Horeca."
           primaryCta="Переглянути вакансії"
-          primaryHref="/jobs"
+          primaryHref="/jobs/kyiv/ogoloshennya"
           secondaryCta="Horeca вакансії"
           secondaryHref="/horeca"
           gradient="from-blue-600 via-brand to-indigo-800"
@@ -31,16 +33,8 @@ export default function RobotaSeekerPage() {
 
       <section className="pb-12">
         <h2 className="text-xl font-bold text-slate-900">Популярні міста</h2>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {cities.map((city) => (
-            <Link
-              key={city}
-              href={`/jobs/${city.toLowerCase()}/ogoloshennya`}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-brand hover:text-brand"
-            >
-              {city}
-            </Link>
-          ))}
+        <div className="mt-4">
+          <CityChips project="jobs" cities={cities} allHref="/jobs" />
         </div>
       </section>
 
@@ -62,7 +56,7 @@ export default function RobotaSeekerPage() {
         ]}
       />
 
-      <div className="rounded-2xl border border-blue-100 bg-blue-50 p-6 mb-12">
+      <div className="mb-12 rounded-2xl border border-blue-100 bg-blue-50 p-6">
         <p className="text-blue-900">
           <strong>Шукаєте роботу в ресторані?</strong> Перейдіть на{" "}
           <Link href="/horeca" className="font-semibold underline">
@@ -79,7 +73,7 @@ export default function RobotaSeekerPage() {
         href="/register?from=robota"
       />
 
-      <div className="pb-16 flex justify-center">
+      <div className="flex justify-center pb-8">
         <Button href="/robota/employer" variant="outline">
           Я роботодавець →
         </Button>

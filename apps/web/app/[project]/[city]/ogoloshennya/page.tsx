@@ -1,7 +1,27 @@
-import { HorecaListingCard } from "@/components/horeca/HorecaListingCard";
-import { ListingCard } from "@/components/ListingCard";
-import { fetchProjectListings, isHorecaProject } from "@/lib/listings-api";
-import type { PublicListingSummary } from "@/lib/listings-types";
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { ListingsPageLayout } from "@/components/listings/ListingsPageLayout";
+import { fetchProjectCities } from "@/lib/cities-api";
+import {
+  cityDisplayName,
+  normalizeCitySlug,
+} from "@/lib/cities";
+import { fetchProjectListings } from "@/lib/listings-api";
+import { getProjectMeta } from "@/lib/project-meta";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ project: string; city: string }>;
+}): Promise<Metadata> {
+  const { project, city } = await params;
+  const meta = getProjectMeta(project);
+  const cityName = cityDisplayName(city);
+  return {
+    title: `${meta.title} — ${cityName}`,
+    description: `Вакансії та оголошення у місті ${cityName} на UAREKLAMHUB`,
+  };
+}
 
 export default async function CityListingsPage({
   params,
@@ -9,41 +29,25 @@ export default async function CityListingsPage({
   params: Promise<{ project: string; city: string }>;
 }) {
   const { project, city } = await params;
-  const listings = await fetchProjectListings(project, city);
-  const horeca = isHorecaProject(project);
+  const citySlug = normalizeCitySlug(city);
+  const cityName = cityDisplayName(citySlug);
+
+  if (city !== citySlug) {
+    redirect(`/${project}/${citySlug}/ogoloshennya`);
+  }
+
+  const [listings, cities] = await Promise.all([
+    fetchProjectListings(project, citySlug),
+    fetchProjectCities(project),
+  ]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <header className="mb-8">
-        <h1 className="text-2xl font-bold capitalize text-slate-900 sm:text-3xl">
-          {horeca ? "Horeca" : project}
-        </h1>
-        <p className="mt-2 text-slate-600">
-          Оголошення — <span className="capitalize">{city}</span>
-        </p>
-      </header>
-
-      {listings.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-200 bg-white p-10 text-center text-slate-500">
-          Немає оголошень у цьому місті
-        </p>
-      ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {listings.map((l: PublicListingSummary) =>
-            horeca ? (
-              <HorecaListingCard key={l.id} listing={l} project={project} />
-            ) : (
-              <ListingCard
-                key={l.id}
-                id={l.id}
-                project={project}
-                title={l.title ?? ""}
-                city={city}
-              />
-            ),
-          )}
-        </div>
-      )}
-    </div>
+    <ListingsPageLayout
+      project={project}
+      listings={listings}
+      cities={cities}
+      citySlug={citySlug}
+      cityName={cityName}
+    />
   );
 }

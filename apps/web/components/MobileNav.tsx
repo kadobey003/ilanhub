@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { href: "/", label: "Головна", icon: "🏠", match: (p: string) => p === "/" },
-  { href: "/robota", label: "Робота", icon: "💼", match: (p: string) => p.startsWith("/robota") },
+  { href: "/robota", label: "Робота", icon: "💼", match: (p: string) => p.startsWith("/robota") || p.startsWith("/jobs") },
   { href: "/create", label: "Подати", icon: "+", fab: true },
   { href: "/horeca", label: "Horeca", icon: "🍽️", match: (p: string) => p.startsWith("/horeca") },
   { href: "/avto", label: "Авто", icon: "🚗", match: (p: string) => p.startsWith("/avto") },

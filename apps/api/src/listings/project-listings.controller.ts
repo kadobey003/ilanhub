@@ -11,6 +11,13 @@ export class ProjectListingsController {
     return { data };
   }
 
+  @Get(":slug/cities")
+  async projectCities(@Param("slug") slug: string) {
+    const data = await this.publicListings.findCitiesByProjectSlug(slug);
+    if (!data) throw new NotFoundException("Project not found");
+    return { data };
+  }
+
   @Get(":slug/cities/:citySlug/listings")
   async cityListings(
     @Param("slug") slug: string,
