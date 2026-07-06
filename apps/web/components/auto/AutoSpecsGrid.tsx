@@ -3,11 +3,11 @@ import {
   AUTO_DRIVE_LABELS,
   AUTO_FUEL_LABELS,
   AUTO_TRANSMISSION_LABELS,
-  type BotVehicle,
 } from "@ilanhub/shared";
+import type { PublicVehicle } from "@/lib/listings-types";
 
 interface Props {
-  vehicle: BotVehicle;
+  vehicle: PublicVehicle;
 }
 
 export function AutoSpecsGrid({ vehicle }: Props) {
