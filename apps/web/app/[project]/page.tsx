@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ListingsPageLayout } from "@/components/listings/ListingsPageLayout";
 import { fetchProjectCities } from "@/lib/cities-api";
-import { fetchProjectListings } from "@/lib/listings-api";
+import { fetchProjectListings, fetchProjectBrowseMeta } from "@/lib/listings-api";
 import { getProjectMeta } from "@/lib/project-meta";
 
 export async function generateMetadata({
@@ -24,9 +24,10 @@ export default async function ProjectPage({
 }) {
   const { project } = await params;
 
-  const [listings, cities] = await Promise.all([
+  const [listings, cities, browse] = await Promise.all([
     fetchProjectListings(project),
     fetchProjectCities(project),
+    fetchProjectBrowseMeta(project),
   ]);
 
   return (
@@ -34,6 +35,7 @@ export default async function ProjectPage({
       project={project}
       listings={listings}
       cities={cities}
+      browse={browse}
     />
   );
 }

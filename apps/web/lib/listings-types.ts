@@ -14,10 +14,31 @@ export interface PublicListingSummary {
   contactPhone?: string | null;
   citySlug?: string | null;
   cityName?: string | null;
+  categorySlug?: string | null;
+  categoryName?: string | null;
   imageUrl?: string | null;
   vacancyCount: number;
   firstVacancyTitle?: string | null;
+  firstSalary?: string | null;
+  positionTitles?: string[];
   publishedAt?: string | null;
+}
+
+export interface BrowseCategory {
+  slug: string;
+  name: string;
+}
+
+export interface BrowseTelegramChannel {
+  name: string;
+  url: string;
+  channelId: string;
+}
+
+export interface ProjectBrowseMeta {
+  categories: BrowseCategory[];
+  telegramChannels: BrowseTelegramChannel[];
+  botUsername: string | null;
 }
 
 export interface PublicListingDetail extends PublicListingSummary {

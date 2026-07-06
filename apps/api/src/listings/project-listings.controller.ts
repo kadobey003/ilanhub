@@ -1,4 +1,4 @@
-import { Controller, Get, NotFoundException, Param } from "@nestjs/common";
+import { Controller, Get, NotFoundException, Param, Query } from "@nestjs/common";
 import { ListingsPublicService } from "./listings-public.service.js";
 
 @Controller("projects")
@@ -14,6 +14,16 @@ export class ProjectListingsController {
   @Get(":slug/cities")
   async projectCities(@Param("slug") slug: string) {
     const data = await this.publicListings.findCitiesByProjectSlug(slug);
+    if (!data) throw new NotFoundException("Project not found");
+    return { data };
+  }
+
+  @Get(":slug/browse")
+  async projectBrowse(
+    @Param("slug") slug: string,
+    @Query("city") city?: string,
+  ) {
+    const data = await this.publicListings.findBrowseMeta(slug, city);
     if (!data) throw new NotFoundException("Project not found");
     return { data };
   }

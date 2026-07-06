@@ -1,18 +1,15 @@
 import Link from "next/link";
-import { CityChips } from "./CityChips";
-import { ListingsEmptyState } from "./ListingsEmptyState";
-import { JobListingCard } from "./JobListingCard";
-import { HorecaListingCard } from "@/components/horeca/HorecaListingCard";
+import { ListingsBrowser } from "./ListingsBrowser";
 import { Button } from "@/components/ui/Button";
 import { getProjectMeta } from "@/lib/project-meta";
-import { isHorecaProject } from "@/lib/listings-api";
 import type { CityOption } from "@/lib/cities";
-import type { PublicListingSummary } from "@/lib/listings-types";
+import type { ProjectBrowseMeta, PublicListingSummary } from "@/lib/listings-types";
 
 interface Props {
   project: string;
   listings: PublicListingSummary[];
   cities: CityOption[];
+  browse: ProjectBrowseMeta;
   citySlug?: string;
   cityName?: string;
 }
@@ -21,11 +18,11 @@ export function ListingsPageLayout({
   project,
   listings,
   cities,
+  browse,
   citySlug,
   cityName,
 }: Props) {
   const meta = getProjectMeta(project);
-  const horeca = isHorecaProject(project);
   const allHref = `/${project}`;
   const countLabel =
     listings.length === 0
@@ -36,7 +33,7 @@ export function ListingsPageLayout({
 
   return (
     <div className="pb-nav md:pb-8">
-      <section className={`relative overflow-hidden app-gradient-hero text-white md:mx-4 md:mt-4 md:rounded-3xl`}>
+      <section className="relative overflow-hidden app-gradient-hero text-white md:mx-4 md:mt-4 md:rounded-3xl">
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.07]" />
         <div className="relative px-4 py-8 sm:px-8 sm:py-12">
           <div className="mx-auto max-w-6xl">
@@ -74,33 +71,17 @@ export function ListingsPageLayout({
         </div>
       </section>
 
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <section className="py-6">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Місто
-          </h2>
-          <CityChips
-            project={project}
-            cities={cities}
-            activeCity={citySlug}
-            allHref={allHref}
-          />
-        </section>
-
-        {listings.length === 0 ? (
-          <ListingsEmptyState project={project} cityName={cityName} />
-        ) : (
-          <div className="grid gap-4 pb-8 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
-            {listings.map((listing) =>
-              horeca ? (
-                <HorecaListingCard key={listing.id} listing={listing} project={project} />
-              ) : (
-                <JobListingCard key={listing.id} listing={listing} project={project} />
-              ),
-            )}
-          </div>
-        )}
-      </div>
+      <ListingsBrowser
+        project={project}
+        listings={listings}
+        cities={cities}
+        categories={browse.categories}
+        telegramChannels={browse.telegramChannels}
+        botUsername={browse.botUsername}
+        citySlug={citySlug}
+        cityName={cityName}
+        allHref={allHref}
+      />
     </div>
   );
 }

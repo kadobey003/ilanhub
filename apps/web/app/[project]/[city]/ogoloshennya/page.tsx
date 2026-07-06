@@ -6,7 +6,7 @@ import {
   cityDisplayName,
   normalizeCitySlug,
 } from "@/lib/cities";
-import { fetchProjectListings } from "@/lib/listings-api";
+import { fetchProjectListings, fetchProjectBrowseMeta } from "@/lib/listings-api";
 import { getProjectMeta } from "@/lib/project-meta";
 
 export async function generateMetadata({
@@ -36,9 +36,10 @@ export default async function CityListingsPage({
     redirect(`/${project}/${citySlug}/ogoloshennya`);
   }
 
-  const [listings, cities] = await Promise.all([
+  const [listings, cities, browse] = await Promise.all([
     fetchProjectListings(project, citySlug),
     fetchProjectCities(project),
+    fetchProjectBrowseMeta(project, citySlug),
   ]);
 
   return (
@@ -46,6 +47,7 @@ export default async function CityListingsPage({
       project={project}
       listings={listings}
       cities={cities}
+      browse={browse}
       citySlug={citySlug}
       cityName={cityName}
     />

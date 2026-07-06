@@ -4,9 +4,10 @@ import { FeatureGrid } from "@/components/landing/FeatureGrid";
 import { CTASection } from "@/components/landing/CTASection";
 import { JobListingCard } from "@/components/listings/JobListingCard";
 import { CityChips } from "@/components/listings/CityChips";
+import { TelegramBrowseBanner } from "@/components/listings/TelegramBrowseBanner";
 import { Button } from "@/components/ui/Button";
 import { fetchProjectCities } from "@/lib/cities-api";
-import { fetchProjectListings } from "@/lib/listings-api";
+import { fetchProjectListings, fetchProjectBrowseMeta } from "@/lib/listings-api";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -15,9 +16,10 @@ export const metadata: Metadata = {
 };
 
 export default async function JobsPage() {
-  const [listings, cities] = await Promise.all([
+  const [listings, cities, browse] = await Promise.all([
     fetchProjectListings("jobs"),
     fetchProjectCities("jobs"),
+    fetchProjectBrowseMeta("jobs"),
   ]);
   const recent = listings.slice(0, 6);
 
@@ -37,6 +39,13 @@ export default async function JobsPage() {
             gradient="from-blue-600 via-brand to-indigo-800"
           />
         </div>
+
+        <section className="pb-6">
+          <TelegramBrowseBanner
+            channels={browse.telegramChannels}
+            botUsername={browse.botUsername}
+          />
+        </section>
 
         <section className="pb-8">
           <h2 className="text-lg font-bold text-slate-900">Оберіть місто</h2>

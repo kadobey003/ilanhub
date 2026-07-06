@@ -1,4 +1,8 @@
-import type { PublicListingDetail, PublicListingSummary } from "./listings-types";
+import type {
+  ProjectBrowseMeta,
+  PublicListingDetail,
+  PublicListingSummary,
+} from "./listings-types";
 import { API_URL } from "./api-url";
 
 export async function fetchProjectListings(
@@ -35,4 +39,26 @@ export async function fetchListingDetail(
 
 export function isHorecaProject(slug: string): boolean {
   return slug === "horeca";
+}
+
+export async function fetchProjectBrowseMeta(
+  project: string,
+  city?: string,
+): Promise<ProjectBrowseMeta> {
+  const empty: ProjectBrowseMeta = {
+    categories: [],
+    telegramChannels: [],
+    botUsername: null,
+  };
+  try {
+    const qs = city ? `?city=${encodeURIComponent(city)}` : "";
+    const res = await fetch(`${API_URL}/api/projects/${project}/browse${qs}`, {
+      next: { revalidate: 120 },
+    });
+    if (!res.ok) return empty;
+    const json = await res.json();
+    return json.data ?? empty;
+  } catch {
+    return empty;
+  }
 }

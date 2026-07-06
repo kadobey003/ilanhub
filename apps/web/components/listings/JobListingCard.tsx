@@ -54,6 +54,10 @@ export function JobListingCard({ listing, project }: Props) {
           </p>
         )}
 
+        {listing.firstSalary && (
+          <p className="text-sm font-medium text-emerald-700">💵 {listing.firstSalary}</p>
+        )}
+
         {listing.address && (
           <p className="line-clamp-1 text-sm text-slate-500">📍 {listing.address}</p>
         )}

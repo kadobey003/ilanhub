@@ -8,10 +8,12 @@ import {
   listingMedia,
   listingPositions,
   listings,
+  projectChannelCities,
   projects,
   type Database,
 } from "@ilanhub/database";
 import { DRIZZLE } from "../common/constants.js";
+import { telegramPublicUrl } from "@ilanhub/shared";
 
 const PUBLIC_STATUSES = ["published", "approved"] as const;
 
@@ -88,6 +90,102 @@ export class ListingsPublicService {
       .from(cities)
       .where(eq(cities.isActive, true))
       .orderBy(asc(cities.sortOrder));
+  }
+
+  async findBrowseMeta(projectSlug: string, citySlug?: string) {
+    const project = await this.projectBySlug(projectSlug);
+    if (!project) return null;
+
+    let cityId: string | undefined;
+    if (citySlug) {
+      const [city] = await this.db
+        .select({ id: cities.id })
+        .from(cities)
+        .where(eq(cities.slug, citySlug))
+        .limit(1);
+      cityId = city?.id;
+    }
+
+    const categoryRows = await this.db
+      .select({ slug: categories.slug, name: categories.name })
+      .from(categories)
+      .where(eq(categories.projectId, project.id))
+      .orderBy(asc(categories.sortOrder));
+
+    const channelRows = await this.db
+      .select({
+        id: channelConfigs.id,
+        name: channelConfigs.name,
+        config: channelConfigs.config,
+      })
+      .from(channelConfigs)
+      .where(
+        and(
+          eq(channelConfigs.projectId, project.id),
+          eq(channelConfigs.purpose, "publication"),
+          eq(channelConfigs.channel, "telegram"),
+          eq(channelConfigs.isActive, true),
+        ),
+      );
+
+    const cityLinks = await this.db
+      .select({
+        channelConfigId: projectChannelCities.channelConfigId,
+        citySlug: cities.slug,
+      })
+      .from(projectChannelCities)
+      .innerJoin(cities, eq(projectChannelCities.cityId, cities.id));
+
+    const citiesByChannel = new Map<string, string[]>();
+    for (const row of cityLinks) {
+      const list = citiesByChannel.get(row.channelConfigId) ?? [];
+      list.push(row.citySlug);
+      citiesByChannel.set(row.channelConfigId, list);
+    }
+
+    const telegramChannels = channelRows
+      .filter((ch) => {
+        const scoped = citiesByChannel.get(ch.id);
+        if (!scoped?.length) return true;
+        if (!citySlug) return true;
+        return scoped.includes(citySlug);
+      })
+      .map((ch) => {
+        const cfg = (ch.config ?? {}) as Record<string, unknown>;
+        const channelId = String(cfg.channelId ?? "");
+        const url = telegramPublicUrl(channelId);
+        if (!url) return null;
+        return {
+          name: ch.name ?? channelId,
+          url,
+          channelId,
+        };
+      })
+      .filter((x): x is NonNullable<typeof x> => Boolean(x));
+
+    const [botRow] = await this.db
+      .select({ config: channelConfigs.config })
+      .from(channelConfigs)
+      .where(
+        and(
+          eq(channelConfigs.projectId, project.id),
+          eq(channelConfigs.channel, "telegram"),
+          eq(channelConfigs.purpose, "listing_input"),
+          eq(channelConfigs.isActive, true),
+        ),
+      )
+      .limit(1);
+
+    const botCfg = (botRow?.config ?? {}) as Record<string, unknown>;
+    const botUsername = String(botCfg.botUsername ?? "")
+      .replace(/^@/, "")
+      .trim() || null;
+
+    return {
+      categories: categoryRows,
+      telegramChannels,
+      botUsername,
+    };
   }
 
   async findPublicById(id: string) {
@@ -182,8 +280,10 @@ export class ListingsPublicService {
       .select({
         listing: listings,
         city: cities,
+        category: categories,
       })
       .from(listings)
+      .innerJoin(categories, eq(listings.categoryId, categories.id))
       .leftJoin(cities, eq(listings.cityId, cities.id))
       .where(
         and(
@@ -224,7 +324,7 @@ export class ListingsPublicService {
     }
 
     return Promise.all(
-      rows.map(async ({ listing, city }) => {
+      rows.map(async ({ listing, city, category }) => {
         const positions = positionsByListing.get(listing.id) ?? [];
         const cover = mediaByListing.get(listing.id);
         const imageUrl = cover?.url
@@ -239,9 +339,13 @@ export class ListingsPublicService {
           contactPhone: listing.contactPhone,
           citySlug: city?.slug ?? null,
           cityName: city?.name ?? null,
+          categorySlug: category.slug,
+          categoryName: category.name,
           imageUrl,
           vacancyCount: positions.length,
           firstVacancyTitle: positions[0]?.title ?? null,
+          firstSalary: positions[0]?.salary ?? null,
+          positionTitles: positions.map((p) => p.title),
           publishedAt: listing.publishedAt,
         };
       }),
