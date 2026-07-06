@@ -1,7 +1,7 @@
 import { Injectable, Inject } from "@nestjs/common";
 import { desc, eq } from "drizzle-orm";
 import { listings, projects, users, type Database } from "@ilanhub/database";
-import { normalizePhone } from "@ilanhub/shared";
+import { normalizeAuthPhone } from "@ilanhub/shared";
 import { DRIZZLE } from "../common/constants.js";
 
 @Injectable()
@@ -18,7 +18,7 @@ export class UsersService {
   }
 
   async findByPhone(phone: string) {
-    const normalized = normalizePhone(phone);
+    const normalized = normalizeAuthPhone(phone);
     if (!normalized) return null;
     const [row] = await this.db
       .select()
@@ -85,7 +85,7 @@ export class UsersService {
   }
 
   async linkTelegram(telegramId: string, phoneRaw: string, name?: string) {
-    const phone = normalizePhone(phoneRaw);
+    const phone = normalizeAuthPhone(phoneRaw);
     if (!phone) throw new Error("Invalid phone");
 
     const byPhone = await this.findByPhone(phone);

@@ -4,12 +4,19 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { t } from "@ilanhub/i18n";
+import { parsePhoneInput } from "@ilanhub/shared";
 import { BrandLogo } from "@/components/BrandLogo";
 import { authApi } from "@/lib/auth-api";
 import { redirectAfterAuth, saveSession } from "@/lib/auth";
 
-type RegisterStep = "form" | "telegram";
+type RegisterStep = "form" | "foreign_confirm" | "telegram";
 type LoginStep = "phone" | "otp";
+
+function resolvePhoneInput(raw: string, auth: (key: string) => string) {
+  const parsed = parsePhoneInput(raw);
+  if (!parsed) return { error: auth("phone_invalid") as string };
+  return { parsed };
+}
 
 function AuthForm({ mode }: { mode: "login" | "register" }) {
   const searchParams = useSearchParams();
@@ -30,6 +37,12 @@ function AuthForm({ mode }: { mode: "login" | "register" }) {
   const [loginStep, setLoginStep] = useState<LoginStep>("phone");
   const [devCode, setDevCode] = useState<string | undefined>();
   const [telegramHint, setTelegramHint] = useState<string | undefined>();
+  const [foreignPhone, setForeignPhone] = useState<string | null>(null);
+
+  const normalizePhoneField = () => {
+    const result = resolvePhoneInput(phone, auth);
+    if (result.parsed) setPhone(result.parsed.phone);
+  };
 
   const pollLinkStatus = useCallback(async () => {
     if (!linkToken) return;
@@ -54,14 +67,14 @@ function AuthForm({ mode }: { mode: "login" | "register" }) {
     return () => clearInterval(id);
   }, [registerStep, linkToken, pollLinkStatus]);
 
-  async function handleRegister(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
+  async function submitRegister(normalizedPhone: string) {
     setLoading(true);
     try {
-      const res = await authApi.register(phone, name);
+      const res = await authApi.register(normalizedPhone, name);
+      setPhone(normalizedPhone);
       setLinkToken(res.linkToken);
       setTelegramUrl(res.telegramUrl);
+      setForeignPhone(null);
       setRegisterStep("telegram");
     } catch (err) {
       setError(err instanceof Error ? err.message : auth("phone_required"));
@@ -70,12 +83,45 @@ function AuthForm({ mode }: { mode: "login" | "register" }) {
     }
   }
 
+  async function handleRegister(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    const result = resolvePhoneInput(phone, auth);
+    if (!result.parsed) {
+      setError(result.error ?? auth("phone_invalid"));
+      return;
+    }
+
+    if (!result.parsed.isUkraine) {
+      setPhone(result.parsed.phone);
+      setForeignPhone(result.parsed.phone);
+      setRegisterStep("foreign_confirm");
+      return;
+    }
+
+    setPhone(result.parsed.phone);
+    await submitRegister(result.parsed.phone);
+  }
+
+  async function handleForeignConfirm() {
+    if (!foreignPhone) return;
+    setError("");
+    await submitRegister(foreignPhone);
+  }
+
   async function handleLoginRequest(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    const result = resolvePhoneInput(phone, auth);
+    if (!result.parsed) {
+      setError(result.error ?? auth("phone_invalid"));
+      return;
+    }
+
+    setPhone(result.parsed.phone);
     setLoading(true);
     try {
-      const res = await authApi.loginRequest(phone);
+      const res = await authApi.loginRequest(result.parsed.phone);
       setDevCode(res.devCode);
       setTelegramHint(res.telegramHint);
       setLoginStep("otp");
@@ -153,6 +199,7 @@ function AuthForm({ mode }: { mode: "login" | "register" }) {
                   required
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
+                  onBlur={normalizePhoneField}
                   className={inputClass}
                   placeholder={auth("phone_placeholder")}
                 />
@@ -211,6 +258,33 @@ function AuthForm({ mode }: { mode: "login" | "register" }) {
               </button>
             </form>
           )
+        ) : registerStep === "foreign_confirm" ? (
+          <div className="mt-8 space-y-4">
+            <h2 className="text-lg font-semibold text-slate-900">
+              {auth("foreign_phone_title")}
+            </h2>
+            <p className="text-sm text-slate-600">
+              {t("web.auth.foreign_phone_desc", { phone: foreignPhone ?? phone })}
+            </p>
+            <button
+              type="button"
+              className={btnClass}
+              disabled={loading}
+              onClick={handleForeignConfirm}
+            >
+              {loading ? "…" : auth("foreign_phone_confirm")}
+            </button>
+            <button
+              type="button"
+              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              onClick={() => {
+                setForeignPhone(null);
+                setRegisterStep("form");
+              }}
+            >
+              {auth("foreign_phone_change")}
+            </button>
+          </div>
         ) : registerStep === "form" ? (
           <form className="mt-8 space-y-4" onSubmit={handleRegister}>
             <div>
@@ -235,6 +309,7 @@ function AuthForm({ mode }: { mode: "login" | "register" }) {
                 required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                onBlur={normalizePhoneField}
                 className={inputClass}
                 placeholder={auth("phone_placeholder")}
               />

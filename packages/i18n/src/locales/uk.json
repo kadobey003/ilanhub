@@ -224,6 +224,11 @@
       "open_telegram": "Відкрити Telegram",
       "waiting_telegram": "Очікуємо підтвердження…",
       "phone_required": "Телефон обов'язковий",
+      "phone_invalid": "Невірний формат номера",
+      "foreign_phone_title": "Іноземний номер",
+      "foreign_phone_desc": "Номер {{phone}} не український (+380). Продовжити реєстрацію з іноземним номером?",
+      "foreign_phone_confirm": "Так, продовжити",
+      "foreign_phone_change": "Змінити номер",
       "login_hint": "Код надійде в Telegram, прив'язаний до цього номера"
     },
     "footer": {

@@ -2,7 +2,7 @@ import { IsOptional, IsString, Length, Matches, MinLength } from "class-validato
 
 export class RegisterDto {
   @IsString()
-  @Matches(/^\+?[\d\s()-]{9,20}$/)
+  @Matches(/^\+?[\d\s()-]{8,22}$/)
   phone!: string;
 
   @IsString()
@@ -13,13 +13,13 @@ export class RegisterDto {
 
 export class LoginRequestDto {
   @IsString()
-  @Matches(/^\+?[\d\s()-]{9,20}$/)
+  @Matches(/^\+?[\d\s()-]{8,22}$/)
   phone!: string;
 }
 
 export class LoginVerifyDto {
   @IsString()
-  @Matches(/^\+?[\d\s()-]{9,20}$/)
+  @Matches(/^\+?[\d\s()-]{8,22}$/)
   phone!: string;
 
   @IsString()

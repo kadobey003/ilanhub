@@ -7,7 +7,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { randomBytes } from "node:crypto";
-import { generateOtp, normalizePhone } from "@ilanhub/shared";
+import { generateOtp, normalizeAuthPhone } from "@ilanhub/shared";
 import { REDIS } from "../common/constants.js";
 import type { Redis } from "ioredis";
 import type { users } from "@ilanhub/database";
@@ -57,7 +57,7 @@ export class AuthService {
   }
 
   async register(phoneRaw: string, name: string) {
-    const phone = normalizePhone(phoneRaw);
+    const phone = normalizeAuthPhone(phoneRaw);
     if (!phone) throw new BadRequestException("Invalid phone number");
 
     const existing = await this.usersService.findByPhone(phone);
@@ -103,7 +103,7 @@ export class AuthService {
   }
 
   async requestLogin(phoneRaw: string) {
-    const phone = normalizePhone(phoneRaw);
+    const phone = normalizeAuthPhone(phoneRaw);
     if (!phone) throw new BadRequestException("Invalid phone number");
 
     const user = await this.usersService.findByPhone(phone);
@@ -146,7 +146,7 @@ export class AuthService {
       throw new NotFoundException();
     }
 
-    const phone = normalizePhone(process.env.DEV_LOGIN_PHONE ?? "+380000000001");
+    const phone = normalizeAuthPhone(process.env.DEV_LOGIN_PHONE ?? "+380000000001");
     if (!phone) throw new BadRequestException("Invalid dev phone");
 
     let user = await this.usersService.findByPhone(phone);
@@ -168,7 +168,7 @@ export class AuthService {
   }
 
   async verifyLogin(phoneRaw: string, code: string) {
-    const phone = normalizePhone(phoneRaw);
+    const phone = normalizeAuthPhone(phoneRaw);
     if (!phone) throw new BadRequestException("Invalid phone number");
 
     const raw = await this.redis.get(`auth:otp:${phone}`);
@@ -219,7 +219,7 @@ export class AuthService {
   }
 
   async handleBotContact(telegramId: string, phoneRaw: string, firstName?: string) {
-    const phone = normalizePhone(phoneRaw);
+    const phone = normalizeAuthPhone(phoneRaw);
     if (!phone) throw new BadRequestException("Invalid phone");
 
     const pendingRaw = await this.redis.get(`auth:pending:${telegramId}`);
