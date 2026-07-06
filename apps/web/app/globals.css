@@ -85,8 +85,7 @@ html.horeca-dark .horeca-detail-card .text-slate-700 {
 }
 
 html.horeca-dark .horeca-detail-card .text-slate-600,
-html.horeca-dark .horeca-detail-card .text-slate-500,
-html.horeca-dark .horeca-detail-card .text-slate-400 {
+html.horeca-dark .horeca-detail-card .text-slate-500 {
   @apply text-slate-400;
 }
 
