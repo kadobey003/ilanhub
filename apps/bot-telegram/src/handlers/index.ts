@@ -51,6 +51,7 @@ import {
 } from "../payments.js";
 import { showWelcome } from "../welcome.js";
 import { registerAdminHandlers } from "../admin-handlers.js";
+import { touchIdleFromSession } from "../idle-timeout.js";
 
 const CHANNEL = "telegram" as const;
 
@@ -66,6 +67,18 @@ async function promptProjectSelection(ctx: Context): Promise<void> {
 }
 
 export function registerHandlers(bot: Bot): void {
+  bot.use(async (ctx, next) => {
+    await next();
+    const userId = String(ctx.from?.id ?? "");
+    const chatId = ctx.chat?.id;
+    if (!userId || chatId === undefined) return;
+    try {
+      const session = await getSession(CHANNEL, userId);
+      await touchIdleFromSession(bot, userId, chatId, session);
+    } catch (err) {
+      console.warn("idle touch failed:", err);
+    }
+  });
   bot.catch((err) => {
     console.error("bot handler error:", err.message);
   });
@@ -315,6 +328,7 @@ async function handleAction(ctx: Context): Promise<void> {
   }
   if (action === "menu") {
     await ctx.answerCallbackQuery();
+    await clearSession(CHANNEL, userId);
     const msg = ctx.callbackQuery?.message;
     if (msg) {
       await showWelcome(ctx, await mainMenuKeyboard(), { edit: true });

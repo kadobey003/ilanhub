@@ -1,5 +1,6 @@
 import { Redis } from "ioredis";
 import { type BotSession, type Channel, ListingState } from "@ilanhub/shared";
+import { cancelIdleReset } from "./idle-timeout.js";
 
 const TTL_SECONDS = 24 * 60 * 60;
 
@@ -39,6 +40,7 @@ export async function clearSession(
   channel: Channel,
   userId: string,
 ): Promise<void> {
+  cancelIdleReset(userId);
   await getRedis().del(sessionKey(channel, userId));
 }
 
