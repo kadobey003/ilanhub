@@ -7,9 +7,11 @@ interface Props {
   listing: PublicListingSummary;
   project: string;
   featured?: boolean;
+  variant?: "vacancy" | "product";
 }
 
-export function HorecaListingCard({ listing, project, featured }: Props) {
+export function HorecaListingCard({ listing, project, featured, variant = "vacancy" }: Props) {
+  const isProduct = variant === "product" || listing.sourceStep === "horeca_product";
   const title = listing.title ?? "Заклад";
   const date = formatListingDate(listing.publishedAt);
   const highlight = featured || listing.isPinned || listing.isFeatured;
@@ -61,7 +63,9 @@ export function HorecaListingCard({ listing, project, featured }: Props) {
           {listing.vacancyCount > 0 && (
             <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
               {listing.vacancyCount}{" "}
-              {listing.vacancyCount === 1 ? "вакансія" : "вакансії"}
+              {isProduct
+                ? listing.vacancyCount === 1 ? "товар" : "товари"
+                : listing.vacancyCount === 1 ? "вакансія" : "вакансії"}
             </span>
           )}
         </div>
@@ -72,7 +76,7 @@ export function HorecaListingCard({ listing, project, featured }: Props) {
 
         {listing.firstVacancyTitle && (
           <p className="mt-2 text-sm text-slate-700">
-            <span className="text-slate-500">потрібен:</span>{" "}
+            <span className="text-slate-500">{isProduct ? "продається:" : "потрібен:"}</span>{" "}
             <span className="font-medium">{listing.firstVacancyTitle}</span>
             {listing.vacancyCount > 1 ? ` +${listing.vacancyCount - 1}` : ""}
           </p>

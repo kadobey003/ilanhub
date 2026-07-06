@@ -142,6 +142,7 @@ export async function seed(connectionString: string) {
             { projectId: project.id, slug: "bar", name: "Бар", sortOrder: 3 },
             { projectId: project.id, slug: "hotel", name: "Готель", sortOrder: 4 },
             { projectId: project.id, slug: "hookah", name: "Наргілє", sortOrder: 5 },
+            { projectId: project.id, slug: "used-equipment", name: "Б/в обладнання", sortOrder: 6 },
           ]
         : project.slug === "jobs"
           ? [

@@ -90,6 +90,20 @@ export async function createHorecaListing(payload: HorecaListingPayload) {
   );
 }
 
+export async function fetchHorecaSellCategory(projectId: string) {
+  const json = await authRequest<{ data: ApiCategory }>(
+    `/api/account/projects/${projectId}/horeca/sell/category`,
+  );
+  return json.data;
+}
+
+export async function createHorecaSellListing(payload: HorecaListingPayload) {
+  return authRequest<{ data: { id: string; status: string; price: number | null } }>(
+    "/api/account/listings/horeca/sell",
+    { method: "POST", body: JSON.stringify(payload) },
+  );
+}
+
 export async function fetchProjectCities(projectId: string): Promise<ApiCity[]> {
   const res = await fetch(`${PUBLIC_API_URL}/api/projects/${projectId}/cities`);
   if (!res.ok) throw new Error(`API error ${res.status}`);

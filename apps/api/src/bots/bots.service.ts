@@ -148,6 +148,7 @@ export class BotsService {
           | "viber"
           | "whatsapp"
           | "web",
+        sourceStep: dto.sourceStep,
         status: "draft",
       })
       .returning();
@@ -246,6 +247,7 @@ export class BotsService {
       description: row.description,
       contactPhone: row.contactPhone,
       price: row.price,
+      sourceStep: row.sourceStep,
       positions,
       mediaUrls: media.map((m) => m.url),
     };
@@ -304,6 +306,7 @@ export class BotsService {
         description: dto.description,
         contactPhone: dto.contactPhone,
         price: totalPrice,
+        sourceStep: dto.sourceStep,
         updatedAt: new Date(),
       })
       .where(eq(listings.id, listingId))

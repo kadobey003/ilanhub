@@ -37,6 +37,11 @@ export interface PublicListingSummary {
   publishedAt?: string | null;
   isPinned?: boolean;
   isFeatured?: boolean;
+  sourceStep?: string | null;
+}
+
+export function isHorecaProductListing(listing: { sourceStep?: string | null }): boolean {
+  return listing.sourceStep === "horeca_product";
 }
 
 export interface BrowseCategory {

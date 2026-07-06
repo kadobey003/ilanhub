@@ -31,6 +31,10 @@ export const DEFAULT_VACANCY_BUNDLES = [
 
 export const MAX_VACANCIES_PER_LISTING = 3;
 
+export const HORECA_SOURCE_VACANCY = "horeca_vacancy";
+export const HORECA_SOURCE_PRODUCT = "horeca_product";
+export const MAX_HORECA_PRODUCTS = 3;
+
 export const BANK_TRANSFER_TIMEOUT_HOURS = 24;
 
 export const BOOST_PRICES: Record<BoostType, number> = {

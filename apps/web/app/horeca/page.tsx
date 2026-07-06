@@ -9,7 +9,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Horeca — Ресторани та готелі",
-  description: "Вакансії та оголошення для ресторанів, кафе, барів та готелів",
+  description: "Вакансії та продаж б/в обладнання для ресторанів, кафе, барів та готелів",
 };
 
 const roles = [
@@ -22,9 +22,22 @@ const roles = [
   "Менеджер залу",
 ];
 
+const equipment = [
+  "Плити та печі",
+  "Холодильники",
+  "Посуд",
+  "Меблі",
+  "Кавомашини",
+  "Барне обладнання",
+];
+
 export default async function HorecaPage() {
-  const listings = await fetchProjectListings("horeca");
+  const [listings, productListings] = await Promise.all([
+    fetchProjectListings("horeca", undefined, "vacancy"),
+    fetchProjectListings("horeca", undefined, "product"),
+  ]);
   const recent = listings.slice(0, 3);
+  const recentProducts = productListings.slice(0, 3);
 
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -33,11 +46,11 @@ export default async function HorecaPage() {
           badge="🍽️ HoReCa vertical"
           title="Ресторани."
           highlight="Кафе. Готелі."
-          subtitle="Окремий напрям від загальної роботи. Спеціалізовані категорії, канали та аудиторія для індустрії гостинності."
+          subtitle="Окремий напрям від загальної роботи. Вакансії та продаж б/в обладнання для індустрії гостинності."
           primaryCta="Вакансії Horeca"
           primaryHref="/horeca/ogoloshennya"
-          secondaryCta="Подати вакансію"
-          secondaryHref="/create?project=horeca"
+          secondaryCta="Б/в обладнання"
+          secondaryHref="/horeca/prodazh"
           gradient="from-amber-500 via-orange-500 to-red-600"
         />
       </div>
@@ -55,6 +68,34 @@ export default async function HorecaPage() {
           ))}
         </div>
       </section>
+
+      <section className="mb-12">
+        <h2 className="text-xl font-bold text-slate-900">Б/в обладнання</h2>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {equipment.map((item) => (
+            <span key={item} className="rounded-full bg-orange-100 px-4 py-2 text-sm font-medium text-orange-900">
+              {item}
+            </span>
+          ))}
+        </div>
+      </section>
+
+      {recentProducts.length > 0 && (
+        <section className="mb-12">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">Оголошення про продаж</h2>
+              <p className="mt-1 text-sm text-slate-600">Обладнання від ресторанів та кафе</p>
+            </div>
+            <Link href="/horeca/prodazh" className="text-sm font-semibold text-amber-700 hover:text-amber-800">Усі →</Link>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {recentProducts.map((listing) => (
+              <HorecaListingCard key={listing.id} listing={listing} project="horeca" variant="product" />
+            ))}
+          </div>
+        </section>
+      )}
 
       {recent.length > 0 && (
         <section className="mb-12">
@@ -117,16 +158,18 @@ export default async function HorecaPage() {
             title: "Кандидати",
             description: "Знайдіть роботу саме в індустрії гостинності.",
           },
+          {
+            title: "Продаж обладнання",
+            description: "Ресторани продають б/в плити, холодильники, посуд та меблі.",
+          },
         ]}
       />
 
-      <div className="mb-12 flex flex-col gap-3 sm:flex-row sm:justify-center">
-        <Button href="/create?project=horeca" size="lg">
-          Подати вакансію Horeca
-        </Button>
-        <Button href="/robota" variant="outline" size="lg">
-          Загальна робота
-        </Button>
+      <div className="mb-12 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
+        <Button href="/create?project=horeca" size="lg">Подати вакансію</Button>
+        <Button href="/create?project=horeca&mode=sell" variant="outline" size="lg">Продати обладнання</Button>
+        <Button href="/horeca/prodazh" variant="outline" size="lg">Переглянути товари</Button>
+        <Button href="/robota" variant="outline" size="lg">Загальна робота</Button>
       </div>
 
       <CTASection

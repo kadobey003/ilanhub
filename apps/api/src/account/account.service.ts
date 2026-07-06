@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { HORECA_SOURCE_PRODUCT, HORECA_SOURCE_VACANCY } from "@ilanhub/shared";
 import { desc, eq } from "drizzle-orm";
 import { categories, listings, projects, users, type Database } from "@ilanhub/database";
 import { DRIZZLE } from "../common/constants.js";
@@ -100,6 +100,21 @@ export class AccountService {
     return this.botsService.getProjectAddons(projectId);
   }
 
+  async resolveHorecaProductCategory(projectId: string) {
+    const items = await this.db
+      .select()
+      .from(categories)
+      .where(eq(categories.projectId, projectId));
+    const active = items.filter((c) => c.isActive);
+    if (!active.length) return null;
+    const preferred = ["used-equipment", "equipment", "horeca", "restaurant"];
+    for (const slug of preferred) {
+      const found = active.find((c) => c.slug === slug);
+      if (found) return found;
+    }
+    return active[0]!;
+  }
+
   async resolveHorecaCategory(projectId: string) {
     const items = await this.db
       .select()
@@ -161,6 +176,39 @@ export class AccountService {
       bundlePriceId: dto.bundlePriceId,
       mediaUrls: dto.mediaUrls,
       positions: dto.positions,
+      sourceStep: dto.sourceStep ?? HORECA_SOURCE_VACANCY,
+    });
+
+    const submitted = await this.listingsService.submit(listing.id);
+    return { data: submitted };
+  }
+
+  async createHorecaSellListing(userId: string, dto: CreateWebHorecaListingDto) {
+    const listingDesc = [
+      dto.pinPost ? "📌 Закріплення на тиждень" : "",
+      dto.dailyDuplicate ? "🔁 Щоденне дублювання (7 днів)" : "",
+      dto.scheduledPostAt ? `📅 Заплановано: ${dto.scheduledPostAt}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const listing = await this.botsService.createListing({
+      channel: "web",
+      externalUserId: userId,
+      projectId: dto.projectId,
+      categoryId: dto.categoryId,
+      cityId: dto.cityId,
+      districtId: dto.districtId,
+      businessType: dto.businessType,
+      title: dto.title,
+      address: dto.address,
+      description: listingDesc || undefined,
+      contactPhone: dto.contactPhone,
+      listingPrice: dto.listingPrice,
+      bundlePriceId: dto.bundlePriceId,
+      mediaUrls: dto.mediaUrls,
+      positions: dto.positions,
+      sourceStep: HORECA_SOURCE_PRODUCT,
     });
 
     const submitted = await this.listingsService.submit(listing.id);

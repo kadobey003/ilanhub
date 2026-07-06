@@ -24,6 +24,25 @@ import {
   submitHorecaListing,
 } from "../horeca-flow.js";
 import {
+  handleHorecaSellCity,
+  handleHorecaSellContact,
+  handleHorecaSellDailyChoice,
+  handleHorecaSellPhoto,
+  handleHorecaSellPinChoice,
+  handleHorecaSellProductDescriptionSkip,
+  handleHorecaSellScheduleSkip,
+  handleHorecaSellText,
+  handleHorecaSellEdit,
+  handleHorecaSellVacancyCount,
+  promptDailyDuplicate as horecaSellPromptDailyDuplicate,
+  resumeHorecaSell,
+  saveAndRepublishListing as saveAndRepublishHorecaSellListing,
+  showHorecaSellChannelPreview,
+  showHorecaSellPreview,
+  startNewHorecaSellListing,
+  submitHorecaSellListing,
+} from "../horeca-sell-flow.js";
+import {
   JOBS_SLUG,
   handleJobsCity,
   handleJobsPhoto,
@@ -49,10 +68,11 @@ import {
   handleBrowseJobsCity,
   startBrowseJobs,
 } from "../browse-jobs-flow.js";
-import { HorecaStep } from "@ilanhub/shared";
+import { HorecaStep, HorecaSellStep } from "@ilanhub/shared";
 import {
   contactKeyboard,
   horecaContactKeyboard,
+  horecaModeKeyboard,
   jobsModeKeyboard,
   paymentPendingKeyboard,
   projectKeyboard,
@@ -82,10 +102,10 @@ import { touchIdleFromSession } from "../idle-timeout.js";
 
 const CHANNEL = "telegram" as const;
 
-type VacancyFlow = "horeca" | "jobs";
+type VacancyFlow = "horeca" | "jobs" | "horeca_sell";
 
 function isVacancyFlow(flow?: string): flow is VacancyFlow {
-  return flow === "horeca" || flow === "jobs";
+  return flow === "horeca" || flow === "jobs" || flow === "horeca_sell";
 }
 
 async function promptProjectSelection(ctx: Context): Promise<void> {
@@ -175,6 +195,10 @@ async function handleContinue(ctx: Context): Promise<void> {
     await resumeHoreca(ctx, session);
     return;
   }
+  if (session.flow === "horeca_sell") {
+    await resumeHorecaSell(ctx, session);
+    return;
+  }
   if (session.flow === "jobs") {
     await resumeJobs(ctx, session);
     return;
@@ -229,21 +253,41 @@ async function handleAction(ctx: Context): Promise<void> {
     if (session) await startNewJobsListing(ctx, session);
     return;
   }
+  if (action === "horeca_post") {
+    const session = await getSession(CHANNEL, userId);
+    if (session) await startNewHorecaListing(ctx, session);
+    return;
+  }
+  if (action === "horeca_sell") {
+    const session = await getSession(CHANNEL, userId);
+    if (session) await startNewHorecaSellListing(ctx, session);
+    return;
+  }
+  if (action === "product_desc_skip") {
+    const session = await getSession(CHANNEL, userId);
+    if (session?.flow === "horeca_sell") {
+      await handleHorecaSellProductDescriptionSkip(ctx, session);
+    }
+    return;
+  }
   if (action === "pin_yes") {
     const session = await getSession(CHANNEL, userId);
     if (session?.flow === "horeca") await handleHorecaPinChoice(ctx, session, true);
+    else if (session?.flow === "horeca_sell") await handleHorecaSellPinChoice(ctx, session, true);
     else if (session?.flow === "jobs") await handleJobsPinChoice(ctx, session, true);
     return;
   }
   if (action === "pin_no") {
     const session = await getSession(CHANNEL, userId);
     if (session?.flow === "horeca") await handleHorecaPinChoice(ctx, session, false);
+    else if (session?.flow === "horeca_sell") await handleHorecaSellPinChoice(ctx, session, false);
     else if (session?.flow === "jobs") await handleJobsPinChoice(ctx, session, false);
     return;
   }
   if (action === "schedule_skip") {
     const session = await getSession(CHANNEL, userId);
     if (session?.flow === "horeca") await handleHorecaScheduleSkip(ctx, session);
+    else if (session?.flow === "horeca_sell") await handleHorecaSellScheduleSkip(ctx, session);
     else if (session?.flow === "jobs") await handleJobsScheduleSkip(ctx, session);
     return;
   }
@@ -256,12 +300,14 @@ async function handleAction(ctx: Context): Promise<void> {
   if (action === "daily_yes") {
     const session = await getSession(CHANNEL, userId);
     if (session?.flow === "horeca") await handleHorecaDailyChoice(ctx, session, true);
+    else if (session?.flow === "horeca_sell") await handleHorecaSellDailyChoice(ctx, session, true);
     else if (session?.flow === "jobs") await handleJobsDailyChoice(ctx, session, true);
     return;
   }
   if (action === "daily_no") {
     const session = await getSession(CHANNEL, userId);
     if (session?.flow === "horeca") await handleHorecaDailyChoice(ctx, session, false);
+    else if (session?.flow === "horeca_sell") await handleHorecaSellDailyChoice(ctx, session, false);
     else if (session?.flow === "jobs") await handleJobsDailyChoice(ctx, session, false);
     return;
   }
@@ -293,6 +339,9 @@ async function handleAction(ctx: Context): Promise<void> {
     if (session?.flow === "horeca") {
       if (session.listingId) await showHorecaChannelPreview(ctx, session);
       else await showHorecaPreview(ctx, session);
+    } else if (session?.flow === "horeca_sell") {
+      if (session.listingId) await showHorecaSellChannelPreview(ctx, session);
+      else await showHorecaSellPreview(ctx, session);
     } else if (session?.flow === "jobs") {
       if (session.listingId) await showJobsChannelPreview(ctx, session);
       else await showJobsPreview(ctx, session);
@@ -306,6 +355,13 @@ async function handleAction(ctx: Context): Promise<void> {
         await saveAndRepublishHorecaListing(ctx, session, userId);
       } catch (err) {
         console.error("saveAndRepublishHorecaListing failed:", err);
+        await ctx.reply(i18n.bot.error);
+      }
+    } else if (session?.flow === "horeca_sell" && session.listingId) {
+      try {
+        await saveAndRepublishHorecaSellListing(ctx, session, userId);
+      } catch (err) {
+        console.error("saveAndRepublishHorecaSellListing failed:", err);
         await ctx.reply(i18n.bot.error);
       }
     } else if (session?.flow === "jobs" && session.listingId) {
@@ -324,6 +380,10 @@ async function handleAction(ctx: Context): Promise<void> {
       session.horecaStep = HorecaStep.DAILY_DUPLICATE;
       await saveSession(session);
       await horecaPromptDailyDuplicate(ctx, session);
+    } else if (session?.flow === "horeca_sell") {
+      session.horecaSellStep = HorecaSellStep.DAILY_DUPLICATE;
+      await saveSession(session);
+      await horecaSellPromptDailyDuplicate(ctx, session);
     } else if (session?.flow === "jobs") {
       session.horecaStep = HorecaStep.DAILY_DUPLICATE;
       await saveSession(session);
@@ -333,10 +393,14 @@ async function handleAction(ctx: Context): Promise<void> {
   }
   if (action === "confirm") {
     const session = await getSession(CHANNEL, userId);
-    if (isVacancyFlow(session?.flow) && session.horecaStep) {
+    if (isVacancyFlow(session?.flow) && (session.horecaStep || session.horecaSellStep)) {
       try {
         const submit =
-          session.flow === "horeca" ? submitHorecaListing : submitJobsListing;
+          session.flow === "horeca"
+            ? submitHorecaListing
+            : session.flow === "horeca_sell"
+              ? submitHorecaSellListing
+              : submitJobsListing;
         const result = await submit(session, userId, ctx.from?.first_name);
         await clearSession(CHANNEL, userId);
         const shortId = result.id.slice(0, 8);
@@ -455,7 +519,9 @@ async function handleProjectSelect(ctx: Context): Promise<void> {
   await saveSession(session);
 
   if (slug === HORECA_SLUG) {
-    await startNewHorecaListing(ctx, session);
+    await ctx.editMessageText(i18n.bot.selectHorecaMode, {
+      reply_markup: horecaModeKeyboard(),
+    });
     return;
   }
 
@@ -480,6 +546,7 @@ async function handleCitySelect(ctx: Context): Promise<void> {
   const session = await getSession(CHANNEL, userId);
   if (!session) return;
   if (session.flow === "horeca") await handleHorecaCity(ctx, session, cityId);
+  else if (session.flow === "horeca_sell") await handleHorecaSellCity(ctx, session, cityId);
   else if (session.flow === "jobs") await handleJobsCity(ctx, session, cityId);
 }
 
@@ -498,6 +565,7 @@ async function handleVacancyCountSelect(ctx: Context): Promise<void> {
   const session = await getSession(CHANNEL, userId);
   if (!session || !isVacancyFlow(session.flow) || count < 1 || count > 3) return;
   if (session.flow === "horeca") await handleHorecaVacancyCount(ctx, session, count);
+  else if (session.flow === "horeca_sell") await handleHorecaSellVacancyCount(ctx, session, count);
   else await handleJobsVacancyCount(ctx, session, count);
 }
 
@@ -506,6 +574,7 @@ async function handlePhoto(ctx: Context): Promise<void> {
   const session = await getSession(CHANNEL, userId);
   if (!session) return;
   if (session.flow === "horeca") await handleHorecaPhoto(ctx, session);
+  else if (session.flow === "horeca_sell") await handleHorecaSellPhoto(ctx, session);
   else if (session.flow === "jobs") await handleJobsPhoto(ctx, session);
 }
 
@@ -517,6 +586,8 @@ async function handleText(ctx: Context): Promise<void> {
 
   if (session.flow === "horeca" && session.horecaStep) {
     await handleHorecaText(ctx, session, text);
+  } else if (session.flow === "horeca_sell" && session.horecaSellStep) {
+    await handleHorecaSellText(ctx, session, text);
   } else if (session.flow === "jobs" && session.horecaStep) {
     await handleJobsText(ctx, session, text);
   }
@@ -529,6 +600,7 @@ async function handleEdit(ctx: Context): Promise<void> {
   const session = await getSession(CHANNEL, userId);
   if (!session) return;
   if (session.flow === "horeca") await handleHorecaEdit(ctx, session, target);
+  else if (session.flow === "horeca_sell") await handleHorecaSellEdit(ctx, session, target);
   else if (session.flow === "jobs") await handleJobsEdit(ctx, session, target);
 }
 
@@ -540,6 +612,10 @@ async function handleContact(ctx: Context): Promise<void> {
   const session = await getSession(CHANNEL, userId);
   if (session?.flow === "horeca" && session.horecaStep === HorecaStep.CONTACT) {
     await handleHorecaContact(ctx, session, contact.phone_number);
+    return;
+  }
+  if (session?.flow === "horeca_sell" && session.horecaSellStep === HorecaSellStep.CONTACT) {
+    await handleHorecaSellContact(ctx, session, contact.phone_number);
     return;
   }
   if (session?.flow === "jobs" && session.horecaStep === HorecaStep.CONTACT) {

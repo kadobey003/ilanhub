@@ -7,5 +7,6 @@ export * from "./bot-state-machine.js";
 export * from "./compat.js";
 export * from "./format-vacancy.js";
 export * from "./format-horeca-post.js";
+export * from "./format-horeca-product-post.js";
 export * from "./format-jobs-post.js";
 export * from "./public-url.js";

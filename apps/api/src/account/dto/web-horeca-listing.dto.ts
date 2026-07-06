@@ -75,6 +75,11 @@ export class CreateWebHorecaListingDto {
   @IsString({ each: true })
   mediaUrls?: string[];
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  sourceStep?: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => BotListingPositionDto)

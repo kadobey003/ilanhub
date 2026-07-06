@@ -9,11 +9,15 @@ import { API_URL } from "./api-url";
 export async function fetchProjectListings(
   project: string,
   city?: string,
+  kind?: "product" | "vacancy",
 ): Promise<PublicListingSummary[]> {
   try {
+    const params = new URLSearchParams();
+    if (kind) params.set("kind", kind);
+    const qs = params.toString() ? `?${params.toString()}` : "";
     const path = city
-      ? `/api/projects/${project}/cities/${city}/listings`
-      : `/api/projects/${project}/listings`;
+      ? `/api/projects/${project}/cities/${city}/listings${qs}`
+      : `/api/projects/${project}/listings${qs}`;
     const res = await fetch(`${API_URL}${path}`, { next: { revalidate: 60 } });
     if (!res.ok) return [];
     const json = await res.json();

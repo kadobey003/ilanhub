@@ -274,6 +274,32 @@ export interface BotPosition {
   vacancyTypeId?: string;
 }
 
+export interface BotProduct {
+  title: string;
+  price?: string;
+  condition?: string;
+  description?: string;
+}
+
+export enum HorecaSellStep {
+  SELECT_CITY = "SELECT_CITY",
+  BUSINESS_TYPE = "BUSINESS_TYPE",
+  BUSINESS_NAME = "BUSINESS_NAME",
+  ADDRESS = "ADDRESS",
+  PRODUCT_COUNT = "PRODUCT_COUNT",
+  PRODUCT_TITLE = "PRODUCT_TITLE",
+  PRODUCT_PRICE = "PRODUCT_PRICE",
+  PRODUCT_CONDITION = "PRODUCT_CONDITION",
+  PRODUCT_DESCRIPTION = "PRODUCT_DESCRIPTION",
+  CONTACT = "CONTACT",
+  UPLOAD_PHOTOS = "UPLOAD_PHOTOS",
+  PIN_POST = "PIN_POST",
+  SCHEDULE_POST = "SCHEDULE_POST",
+  DAILY_DUPLICATE = "DAILY_DUPLICATE",
+  PREVIEW = "PREVIEW",
+  EDIT_MENU = "EDIT_MENU",
+}
+
 export enum HorecaStep {
   SELECT_CITY = "SELECT_CITY",
   SELECT_DISTRICT = "SELECT_DISTRICT",
@@ -301,8 +327,10 @@ export interface BotSession {
   userId: string;
   channel: BotChannel;
   state: BotStep;
-  flow?: "horeca" | "jobs" | "browse_jobs" | "default";
+  flow?: "horeca" | "horeca_sell" | "jobs" | "browse_jobs" | "default";
   horecaStep?: HorecaStep;
+  horecaSellStep?: HorecaSellStep;
+  products?: BotProduct[];
   updatedAt: string;
   projectId?: string;
   categoryId?: string;

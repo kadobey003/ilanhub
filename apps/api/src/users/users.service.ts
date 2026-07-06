@@ -166,6 +166,7 @@ export class UsersService {
         projectSlug: r.project.slug,
         createdAt: r.listing.createdAt,
         publishedAt: r.listing.publishedAt,
+        sourceStep: r.listing.sourceStep,
       })),
     };
   }

@@ -1,12 +1,15 @@
 import type { Context } from "grammy";
 import { i18n } from "@ilanhub/i18n";
-import type { ApiListing } from "@ilanhub/shared";
 import {
   buildListingUrl,
   formatAmountUah,
   formatHorecaPostHtml,
+  formatHorecaProductPostHtml,
   formatJobsPostHtml,
+  HORECA_SOURCE_PRODUCT,
   parseStoredPosition,
+  parseStoredProduct,
+  type ApiListing,
 } from "@ilanhub/shared";
 import { api } from "./api.js";
 import { getSiteBaseUrl } from "./bot-menu.js";
@@ -18,6 +21,7 @@ import {
   paymentPendingKeyboard,
 } from "./keyboards.js";
 import { parseDescriptionMeta, startEditExistingListing as startEditHorecaListing } from "./horeca-flow.js";
+import { startEditExistingListing as startEditHorecaSellListing } from "./horeca-sell-flow.js";
 import { startEditExistingListing as startEditJobsListing } from "./jobs-flow.js";
 import { sendListingPaymentInvoice } from "./payments.js";
 
@@ -65,35 +69,67 @@ async function showPublishedListingPreview(
 ): Promise<void> {
   const { data } = await api.getBotListing(listing.id, userId);
   const meta = parseDescriptionMeta(data.description);
-  const positions = data.positions.map((p) => {
-    const parsed = parseStoredPosition(p);
-    return {
-      title: parsed.title,
-      experience: parsed.experience ?? undefined,
-      salary: parsed.salary ?? undefined,
-      schedule: parsed.schedule ?? undefined,
-      workTime: parsed.workTime ?? undefined,
-      description: parsed.description ?? undefined,
-    };
-  });
 
   const baseUrl = await getSiteBaseUrl();
   const projectSlug = listing.projectSlug ?? "horeca";
-  const postInput = {
-    businessType: data.businessType ?? undefined,
-    title: data.title,
-    address: data.address ?? undefined,
-    benefits: meta.benefits,
-    contactPhone: data.contactPhone ?? undefined,
-    positions,
-    siteUrl: buildListingUrl(baseUrl, projectSlug, listing.id),
-  };
-  const postHtml =
-    projectSlug === "jobs"
-      ? formatJobsPostHtml(postInput)
-      : formatHorecaPostHtml(postInput);
+  const isProduct = listing.sourceStep === HORECA_SOURCE_PRODUCT;
+
+  let postHtml: string;
+  if (projectSlug === "jobs") {
+    const positions = data.positions.map((p) => {
+      const parsed = parseStoredPosition(p);
+      return {
+        title: parsed.title,
+        experience: parsed.experience ?? undefined,
+        salary: parsed.salary ?? undefined,
+        schedule: parsed.schedule ?? undefined,
+        workTime: parsed.workTime ?? undefined,
+        description: parsed.description ?? undefined,
+      };
+    });
+    postHtml = formatJobsPostHtml({
+      businessType: data.businessType ?? undefined,
+      title: data.title,
+      address: data.address ?? undefined,
+      benefits: meta.benefits,
+      contactPhone: data.contactPhone ?? undefined,
+      positions,
+      siteUrl: buildListingUrl(baseUrl, projectSlug, listing.id),
+    });
+  } else if (isProduct) {
+    postHtml = formatHorecaProductPostHtml({
+      businessType: data.businessType ?? undefined,
+      title: data.title,
+      address: data.address ?? undefined,
+      contactPhone: data.contactPhone ?? undefined,
+      products: data.positions.map(parseStoredProduct),
+      siteUrl: buildListingUrl(baseUrl, projectSlug, listing.id),
+    });
+  } else {
+    const positions = data.positions.map((p) => {
+      const parsed = parseStoredPosition(p);
+      return {
+        title: parsed.title,
+        experience: parsed.experience ?? undefined,
+        salary: parsed.salary ?? undefined,
+        schedule: parsed.schedule ?? undefined,
+        workTime: parsed.workTime ?? undefined,
+        description: parsed.description ?? undefined,
+      };
+    });
+    postHtml = formatHorecaPostHtml({
+      businessType: data.businessType ?? undefined,
+      title: data.title,
+      address: data.address ?? undefined,
+      benefits: meta.benefits,
+      contactPhone: data.contactPhone ?? undefined,
+      positions,
+      siteUrl: buildListingUrl(baseUrl, projectSlug, listing.id),
+    });
+  }
 
   const markup = listingPreviewKeyboard(listing);
+  const previewKey = projectSlug === "jobs" ? "jobs" : isProduct ? "horecaSell" : "horeca";
   const photoRef = data.mediaUrls[0];
   if (photoRef) {
     const photo = photoRef.startsWith("tg:") ? photoRef.slice(3) : photoRef;
@@ -104,7 +140,7 @@ async function showPublishedListingPreview(
         reply_markup: markup,
       });
     } else {
-      await ctx.replyWithPhoto(photo, { caption: i18n.bot[projectSlug === "jobs" ? "jobs" : "horeca"].preview });
+      await ctx.replyWithPhoto(photo, { caption: i18n.bot[previewKey].preview });
       await ctx.reply(postHtml, { parse_mode: "HTML", reply_markup: markup });
     }
     return;
@@ -173,6 +209,8 @@ export async function handleMyListingAction(
     await ctx.answerCallbackQuery();
     if (listing.projectSlug === "jobs") {
       await startEditJobsListing(ctx, userId, listing.id);
+    } else if (listing.sourceStep === HORECA_SOURCE_PRODUCT) {
+      await startEditHorecaSellListing(ctx, userId, listing.id);
     } else {
       await startEditHorecaListing(ctx, userId, listing.id);
     }

@@ -69,6 +69,21 @@ export class AccountController {
     return { data: category };
   }
 
+  @Post("listings/horeca/sell")
+  createHorecaSellListing(
+    @Req() req: { userId: string },
+    @Body() dto: CreateWebHorecaListingDto,
+  ) {
+    return this.accountService.createHorecaSellListing(req.userId, dto);
+  }
+
+  @Get("projects/:projectId/horeca/sell/category")
+  async horecaSellCategory(@Param("projectId") projectId: string) {
+    const category = await this.accountService.resolveHorecaProductCategory(projectId);
+    if (!category) throw new NotFoundException("Category not found");
+    return { data: category };
+  }
+
   @Post("listings/jobs")
   createJobsListing(
     @Req() req: { userId: string },

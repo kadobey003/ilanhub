@@ -1,11 +1,13 @@
 import type { Context } from "grammy";
 import {
+  HORECA_SOURCE_VACANCY,
   HorecaStep,
   formatAddonUah,
   formatAmountUah,
   formatHorecaPostHtml,
   formatHorecaPreview,
   parseStoredPosition,
+  buildListingUrl,
   type ApiCategory,
   type ApiVacancyType,
   type BotPosition,
@@ -155,6 +157,7 @@ function buildListingPayload(
     listingPrice: total,
     bundlePriceId: bundle.id,
     mediaUrls: session.mediaUrls,
+    sourceStep: HORECA_SOURCE_VACANCY,
     positions: (session.vacancies ?? []).map(mapPositionToApi),
   };
 }

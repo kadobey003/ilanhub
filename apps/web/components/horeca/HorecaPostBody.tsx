@@ -1,16 +1,75 @@
 import {
   buildHorecaPostSections,
+  buildHorecaProductPostSections,
   buildJobsPostSections,
   parseStoredPosition,
+  parseStoredProduct,
 } from "@ilanhub/shared";
 import { TrackablePhoneLink } from "@/components/TrackablePhoneLink";
 import type { PublicListingDetail } from "@/lib/listings-types";
+import { isHorecaProductListing as isProductListing } from "@/lib/listings-types";
 
 interface Props {
   listing: PublicListingDetail;
 }
 
 export function HorecaPostBody({ listing }: Props) {
+  const isJobs = listing.projectSlug === "jobs";
+  const isProduct = isProductListing(listing);
+
+  if (isProduct) {
+    const products = listing.positions.map(parseStoredProduct);
+    const sections = buildHorecaProductPostSections({
+      businessType: listing.businessType,
+      title: listing.title ?? "Заклад",
+      address: listing.address,
+      city: listing.city?.name,
+      district: listing.district?.name,
+      contactPhone: listing.contactPhone,
+      products,
+    });
+
+    const phoneHref = listing.contactPhone
+      ? `tel:${listing.contactPhone.replace(/[^\d+]/g, "")}`
+      : null;
+
+    return (
+      <div className="space-y-5 text-[15px] leading-relaxed text-slate-800 sm:text-base">
+        <header className="space-y-1">
+          <p className="text-sm font-semibold text-amber-700">{sections.header}</p>
+          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{sections.venue}</h1>
+          {sections.address && <p className="text-slate-600">{sections.address}</p>}
+          <p className="pt-1 font-medium text-slate-900">{sections.intro}</p>
+        </header>
+
+        <div className="space-y-5">
+          {sections.products.map((product) => (
+            <section key={product.title} className="rounded-xl border border-amber-100/80 bg-amber-50/40 p-4">
+              <h2 className="font-bold text-slate-900">• {product.title}</h2>
+              <ul className="mt-2 space-y-1 text-slate-700">
+                {product.lines.map((line) => <li key={line}>{line}</li>)}
+              </ul>
+            </section>
+          ))}
+        </div>
+
+        {sections.contact && (
+          <div id="listing-contact" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-sm text-slate-600">{sections.contact.label}</p>
+            {phoneHref ? (
+              <TrackablePhoneLink href={phoneHref} listingId={listing.id} projectId={listing.projectId}
+                className="mt-1 inline-flex text-lg font-semibold text-amber-700 hover:text-amber-800">
+                {sections.contact.phone}
+              </TrackablePhoneLink>
+            ) : (
+              <p className="mt-1 text-lg font-semibold">{sections.contact.phone}</p>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   const positions = listing.positions.map(parseStoredPosition);
   const input = {
     businessType: listing.businessType,

@@ -58,4 +58,5 @@ export interface ApiListing {
   createdAt: string;
   publishedAt?: string | null;
   contactPhone?: string | null;
+  sourceStep?: string | null;
 }

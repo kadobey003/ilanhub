@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { and, asc, count, desc, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
 import {
   analyticsEvents,
   categories,
@@ -260,6 +260,7 @@ export class ListingsPublicService {
       publishedAt: row.listing.publishedAt,
       isPinned: row.listing.isPinned,
       isFeatured: featured.has(id),
+      sourceStep: row.listing.sourceStep,
       projectSlug: row.project.slug,
       projectName: row.project.name,
       categoryName: row.category.name,
@@ -357,7 +358,11 @@ export class ListingsPublicService {
     return row;
   }
 
-  async findPublishedByProject(projectSlug: string, citySlug?: string) {
+  async findPublishedByProject(
+    projectSlug: string,
+    citySlug?: string,
+    sourceStep?: string,
+  ) {
     const project = await this.projectBySlug(projectSlug);
     if (!project) return [];
 
@@ -371,6 +376,13 @@ export class ListingsPublicService {
       if (!city) return [];
       cityId = city.id;
     }
+
+    const kindFilter =
+      sourceStep === "horeca_product"
+        ? eq(listings.sourceStep, "horeca_product")
+        : sourceStep === "horeca_vacancy"
+          ? or(isNull(listings.sourceStep), eq(listings.sourceStep, "horeca_vacancy"))
+          : undefined;
 
     const rows = await this.db
       .select({
@@ -386,6 +398,7 @@ export class ListingsPublicService {
           eq(listings.projectId, project.id),
           inArray(listings.status, [...PUBLIC_STATUSES]),
           cityId ? eq(listings.cityId, cityId) : undefined,
+          kindFilter,
         ),
       )
       .orderBy(
@@ -452,6 +465,7 @@ export class ListingsPublicService {
           publishedAt: listing.publishedAt,
           isPinned: listing.isPinned,
           isFeatured: featured.has(listing.id),
+          sourceStep: listing.sourceStep,
         };
       }),
     );

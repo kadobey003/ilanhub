@@ -91,6 +91,15 @@ export function jobsModeKeyboard(): InlineKeyboard {
     .text(i18n.bot.cancel, "action:cancel");
 }
 
+export function horecaModeKeyboard(): InlineKeyboard {
+  return new InlineKeyboard()
+    .text(i18n.bot.postHorecaVacancy, "action:horeca_post")
+    .row()
+    .text(i18n.bot.postHorecaSell, "action:horeca_sell")
+    .row()
+    .text(i18n.bot.cancel, "action:cancel");
+}
+
 export function horecaCategoryKeyboard(categories: ApiCategory[]): InlineKeyboard {
   const kb = new InlineKeyboard();
   categories.forEach((c, i) => {

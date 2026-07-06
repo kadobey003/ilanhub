@@ -6,8 +6,21 @@ export class ProjectListingsController {
   constructor(private readonly publicListings: ListingsPublicService) {}
 
   @Get(":slug/listings")
-  async projectListings(@Param("slug") slug: string) {
-    const data = await this.publicListings.findPublishedByProject(slug);
+  async projectListings(
+    @Param("slug") slug: string,
+    @Query("kind") kind?: string,
+  ) {
+    const sourceStep =
+      kind === "product"
+        ? "horeca_product"
+        : kind === "vacancy"
+          ? "horeca_vacancy"
+          : undefined;
+    const data = await this.publicListings.findPublishedByProject(
+      slug,
+      undefined,
+      sourceStep,
+    );
     return { data };
   }
 
@@ -32,10 +45,18 @@ export class ProjectListingsController {
   async cityListings(
     @Param("slug") slug: string,
     @Param("citySlug") citySlug: string,
+    @Query("kind") kind?: string,
   ) {
+    const sourceStep =
+      kind === "product"
+        ? "horeca_product"
+        : kind === "vacancy"
+          ? "horeca_vacancy"
+          : undefined;
     const data = await this.publicListings.findPublishedByProject(
       slug,
       citySlug,
+      sourceStep,
     );
     return { data };
   }
