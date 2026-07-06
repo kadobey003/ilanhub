@@ -29,8 +29,10 @@ import {
   horecaContactKeyboard,
   mainMenuKeyboard,
   paymentPendingKeyboard,
+  projectKeyboard,
   submittedListingKeyboard,
 } from "../keyboards.js";
+import { replyOrEditText } from "../messaging.js";
 import {
   clearSession,
   createSession,
@@ -52,6 +54,17 @@ import { registerAdminHandlers } from "../admin-handlers.js";
 
 const CHANNEL = "telegram" as const;
 const SITE_URL = process.env.PUBLIC_URL ?? "https://ilanhub.com";
+
+async function promptProjectSelection(ctx: Context): Promise<void> {
+  const { data: projects } = await api.getProjects();
+  if (!projects.length) {
+    await ctx.reply(i18n.bot.error);
+    return;
+  }
+  await replyOrEditText(ctx, i18n.bot.selectProject, {
+    reply_markup: projectKeyboard(projects),
+  });
+}
 
 export function registerHandlers(bot: Bot): void {
   bot.catch((err) => {
@@ -132,7 +145,7 @@ async function handleAction(ctx: Context): Promise<void> {
     try {
       const session = createSession(userId, CHANNEL);
       await saveSession(session);
-      await startNewHorecaListing(ctx, session);
+      await promptProjectSelection(ctx);
     } catch (err) {
       console.error("action:new failed:", err);
       await ctx.reply(i18n.bot.error);

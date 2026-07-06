@@ -14,12 +14,16 @@ import {
 } from "@ilanhub/database";
 import { DRIZZLE } from "../common/constants.js";
 import { telegramPublicUrl } from "@ilanhub/shared";
+import { RegionsService } from "../regions/regions.service.js";
 
 const PUBLIC_STATUSES = ["published", "approved"] as const;
 
 @Injectable()
 export class ListingsPublicService {
-  constructor(@Inject(DRIZZLE) private readonly db: Database) {}
+  constructor(
+    @Inject(DRIZZLE) private readonly db: Database,
+    private readonly regionsService: RegionsService,
+  ) {}
 
   private async resolveBotToken(projectId: string): Promise<string | null> {
     const fromEnv = process.env.TELEGRAM_BOT_TOKEN?.trim();
@@ -82,14 +86,7 @@ export class ListingsPublicService {
   }
 
   async findCitiesByProjectSlug(projectSlug: string) {
-    const project = await this.projectBySlug(projectSlug);
-    if (!project) return null;
-
-    return this.db
-      .select({ slug: cities.slug, name: cities.name })
-      .from(cities)
-      .where(eq(cities.isActive, true))
-      .orderBy(asc(cities.sortOrder));
+    return this.regionsService.findCitiesByProjectSlug(projectSlug);
   }
 
   async findBrowseMeta(projectSlug: string, citySlug?: string) {
