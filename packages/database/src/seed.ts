@@ -154,10 +154,18 @@ export async function seed(connectionString: string) {
               { projectId: project.id, slug: "construction", name: "Будівництво", sortOrder: 6 },
               { projectId: project.id, slug: "other", name: "Інше", sortOrder: 7 },
             ]
-          : [
-              { projectId: project.id, slug: "general", name: "Загальне", sortOrder: 1 },
-              { projectId: project.id, slug: "premium", name: "Преміум", sortOrder: 2 },
-            ];
+          : project.slug === "auto"
+            ? [
+                { projectId: project.id, slug: "cars", name: "Легкові", sortOrder: 1 },
+                { projectId: project.id, slug: "trucks", name: "Вантажні", sortOrder: 2 },
+                { projectId: project.id, slug: "moto", name: "Мото", sortOrder: 3 },
+                { projectId: project.id, slug: "trailers", name: "Причепи", sortOrder: 4 },
+                { projectId: project.id, slug: "special", name: "Спецтехніка", sortOrder: 5 },
+              ]
+            : [
+                { projectId: project.id, slug: "general", name: "Загальне", sortOrder: 1 },
+                { projectId: project.id, slug: "premium", name: "Преміум", sortOrder: 2 },
+              ];
 
     await db.insert(categories).values(categoryValues).onConflictDoNothing();
 

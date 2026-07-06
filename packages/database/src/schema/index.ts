@@ -605,6 +605,63 @@ export const listingComments = pgTable(
   (t) => [index("listing_comments_listing_idx").on(t.listingId)],
 );
 
+export const vehicleFuelEnum = pgEnum("vehicle_fuel", [
+  "petrol",
+  "diesel",
+  "gas",
+  "hybrid",
+  "electric",
+]);
+
+export const vehicleTransmissionEnum = pgEnum("vehicle_transmission", [
+  "manual",
+  "automatic",
+]);
+
+export const vehicleDriveEnum = pgEnum("vehicle_drive", [
+  "fwd",
+  "rwd",
+  "awd",
+]);
+
+export const vehicleConditionEnum = pgEnum("vehicle_condition", [
+  "new",
+  "used",
+  "damaged",
+]);
+
+export const listingVehicle = pgTable(
+  "listing_vehicle",
+  {
+    listingId: uuid("listing_id")
+      .primaryKey()
+      .references(() => listings.id, { onDelete: "cascade" }),
+    brand: varchar("brand", { length: 64 }).notNull(),
+    model: varchar("model", { length: 128 }).notNull(),
+    year: integer("year").notNull(),
+    mileage: integer("mileage").notNull(),
+    fuelType: vehicleFuelEnum("fuel_type").notNull(),
+    transmission: vehicleTransmissionEnum("transmission").notNull(),
+    driveType: vehicleDriveEnum("drive_type"),
+    engineVolume: varchar("engine_volume", { length: 8 }),
+    color: varchar("color", { length: 32 }),
+    condition: vehicleConditionEnum("condition").notNull().default("used"),
+    vin: varchar("vin", { length: 17 }),
+    salePrice: integer("sale_price").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("listing_vehicle_brand_idx").on(t.brand),
+    index("listing_vehicle_year_idx").on(t.year),
+    index("listing_vehicle_sale_price_idx").on(t.salePrice),
+  ],
+);
+
 export const dailyStats = pgTable(
   "daily_stats",
   {

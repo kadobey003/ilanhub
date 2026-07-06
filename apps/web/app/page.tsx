@@ -1,14 +1,27 @@
+import type { Metadata } from "next";
 import { HomeRedirect } from "@/components/HomeRedirect";
 import { Hero } from "@/components/landing/Hero";
 import { FeatureGrid } from "@/components/landing/FeatureGrid";
 import { CTASection } from "@/components/landing/CTASection";
+import { FaqSection } from "@/components/landing/FaqSection";
 import { TelegramChannelsShowcase } from "@/components/landing/TelegramChannelsShowcase";
+import { JsonLd } from "@/components/seo/JsonLd";
 import {
   VerticalCards,
   StatsBar,
   CompareNote,
 } from "@/components/landing/VerticalCards";
 import { fetchTelegramChannels } from "@/lib/site-api";
+import { faqJsonLd, pageMetadata } from "@/lib/seo";
+import { FAQ_ITEMS } from "@/lib/seo-content";
+
+export const metadata: Metadata = pageMetadata({
+  title: "UAREKLAMHUB — Робота, Horeca та оголошення в Україні",
+  description:
+    "Вакансії по всій Україні. Подайте оголошення через Telegram, Viber, WhatsApp або сайт. Horeca, офіс, IT, авто.",
+  path: "/",
+  absoluteTitle: true,
+});
 
 export default async function HomePage() {
   const { channels, totalMembers, joinedThisWeek, botUsername } =
@@ -16,6 +29,7 @@ export default async function HomePage() {
 
   return (
     <div className="md:mx-auto md:max-w-6xl md:px-6">
+      <JsonLd data={faqJsonLd(FAQ_ITEMS)} />
       <HomeRedirect />
 
       <div className="px-4 pt-4 md:px-0 md:pt-6">
@@ -97,6 +111,8 @@ export default async function HomePage() {
           ]}
         />
       </div>
+
+      <FaqSection />
 
       <div className="px-4 pb-6 md:px-0 md:pb-24">
         <CTASection

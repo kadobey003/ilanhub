@@ -8,6 +8,7 @@ import {
   listings,
   listingMedia,
   listingPositions,
+  listingVehicle,
   projectChannelCities,
   projects,
   type Database,
@@ -59,10 +60,34 @@ export class PublishService {
       row.listing.projectId,
     );
 
+    const [vehicleRow] = await this.db
+      .select()
+      .from(listingVehicle)
+      .where(eq(listingVehicle.listingId, listingId))
+      .limit(1);
+
+    const vehicle = vehicleRow
+      ? {
+          brand: vehicleRow.brand,
+          model: vehicleRow.model,
+          year: vehicleRow.year,
+          mileage: vehicleRow.mileage,
+          fuelType: vehicleRow.fuelType,
+          transmission: vehicleRow.transmission,
+          driveType: vehicleRow.driveType ?? undefined,
+          engineVolume: vehicleRow.engineVolume ?? undefined,
+          color: vehicleRow.color ?? undefined,
+          condition: vehicleRow.condition,
+          vin: vehicleRow.vin ?? undefined,
+          salePrice: vehicleRow.salePrice,
+        }
+      : null;
+
     return {
       listing: row.listing,
       positions,
       media,
+      vehicle,
       project: { slug: row.project.slug, name: row.project.name },
       category: { name: row.category.name },
       city: row.city ? { name: row.city.name } : null,

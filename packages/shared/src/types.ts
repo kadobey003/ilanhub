@@ -281,6 +281,47 @@ export interface BotProduct {
   description?: string;
 }
 
+export type VehicleFuel = "petrol" | "diesel" | "gas" | "hybrid" | "electric";
+export type VehicleTransmission = "manual" | "automatic";
+export type VehicleDrive = "fwd" | "rwd" | "awd";
+export type VehicleCondition = "new" | "used" | "damaged";
+
+export interface BotVehicle {
+  brand: string;
+  model: string;
+  year: number;
+  mileage: number;
+  fuelType: VehicleFuel;
+  transmission: VehicleTransmission;
+  driveType?: VehicleDrive;
+  engineVolume?: string;
+  color?: string;
+  condition: VehicleCondition;
+  vin?: string;
+  salePrice: number;
+}
+
+export enum AutoStep {
+  SELECT_CATEGORY = "SELECT_CATEGORY",
+  SELECT_CITY = "SELECT_CITY",
+  BRAND = "BRAND",
+  MODEL = "MODEL",
+  YEAR = "YEAR",
+  MILEAGE = "MILEAGE",
+  FUEL = "FUEL",
+  TRANSMISSION = "TRANSMISSION",
+  COLOR = "COLOR",
+  SALE_PRICE = "SALE_PRICE",
+  DESCRIPTION = "DESCRIPTION",
+  UPLOAD_PHOTOS = "UPLOAD_PHOTOS",
+  CONTACT = "CONTACT",
+  PIN_POST = "PIN_POST",
+  SCHEDULE_POST = "SCHEDULE_POST",
+  DAILY_DUPLICATE = "DAILY_DUPLICATE",
+  PREVIEW = "PREVIEW",
+  EDIT_MENU = "EDIT_MENU",
+}
+
 export enum HorecaSellStep {
   SELECT_CITY = "SELECT_CITY",
   BUSINESS_TYPE = "BUSINESS_TYPE",
@@ -327,9 +368,11 @@ export interface BotSession {
   userId: string;
   channel: BotChannel;
   state: BotStep;
-  flow?: "horeca" | "horeca_sell" | "jobs" | "browse_jobs" | "default";
+  flow?: "horeca" | "horeca_sell" | "jobs" | "browse_jobs" | "auto" | "default";
   horecaStep?: HorecaStep;
   horecaSellStep?: HorecaSellStep;
+  autoStep?: AutoStep;
+  vehicle?: BotVehicle;
   products?: BotProduct[];
   updatedAt: string;
   projectId?: string;

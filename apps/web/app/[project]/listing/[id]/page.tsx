@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { HorecaListingView } from "@/components/horeca/HorecaListingView";
+import { AutoListingView } from "@/components/auto/AutoListingView";
 import { ListingDetailLayout } from "@/components/listing/ListingDetailLayout";
 import { ListingEngagement } from "@/components/listing/ListingEngagement";
 import { RelatedListingsSidebar } from "@/components/listing/RelatedListingsSidebar";
 import { ListingAnalytics } from "@/components/ListingAnalytics";
+import { JsonLd } from "@/components/seo/JsonLd";
 import {
   fetchListingDetail,
   fetchListingEngagement,
@@ -12,13 +14,18 @@ import {
   isVacancyStyleProject,
 } from "@/lib/listings-api";
 import { rankRelatedListings } from "@/lib/listing-utils";
+import {
+  breadcrumbJsonLd,
+  jobPostingJsonLd,
+  pageMetadata,
+} from "@/lib/seo";
 
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ project: string; id: string }>;
 }): Promise<Metadata> {
-  const { id } = await params;
+  const { project, id } = await params;
   const listing = await fetchListingDetail(id);
   if (!listing?.title) return { title: "Оголошення" };
   const description =
@@ -26,22 +33,14 @@ export async function generateMetadata({
     listing.address ??
     listing.description ??
     undefined;
-  return {
-    title: listing.title,
+  const cityPart = listing.city?.name ? ` — ${listing.city.name}` : "";
+  return pageMetadata({
+    title: `${listing.title}${cityPart}`,
     description,
-    openGraph: {
-      title: listing.title,
-      description,
-      images: listing.imageUrl ? [{ url: listing.imageUrl, alt: listing.title }] : [],
-      type: "article",
-    },
-    twitter: {
-      card: listing.imageUrl ? "summary_large_image" : "summary",
-      title: listing.title,
-      description,
-      images: listing.imageUrl ? [listing.imageUrl] : [],
-    },
-  };
+    path: `/${project}/listing/${id}`,
+    ogImage: listing.imageUrl,
+    ogType: "article",
+  });
 }
 
 export default async function ListingDetailPage({
@@ -61,6 +60,24 @@ export default async function ListingDetailPage({
   }
 
   const related = rankRelatedListings(relatedListings, listing);
+  const isVacancy = isVacancyStyleProject(project) || isVacancyStyleProject(listing.projectSlug ?? "");
+  const landingPath = project === "jobs" ? "/jobs" : `/${project}`;
+  const cityPath = listing.city
+    ? `/${project}/${listing.city.slug}/ogoloshennya`
+    : landingPath;
+
+  const schemaData = isVacancy
+    ? [
+        jobPostingJsonLd(listing),
+        breadcrumbJsonLd([
+          { name: listing.projectName, path: landingPath },
+          ...(listing.city
+            ? [{ name: listing.city.name, path: cityPath }]
+            : []),
+          { name: listing.title ?? "Оголошення", path: `/${project}/listing/${id}` },
+        ]),
+      ]
+    : [];
 
   const sidebar = (
     <RelatedListingsSidebar
@@ -70,12 +87,30 @@ export default async function ListingDetailPage({
     />
   );
 
-  if (isVacancyStyleProject(project) || isVacancyStyleProject(listing.projectSlug ?? "")) {
+  if (isVacancy) {
+    return (
+      <div className="py-6 sm:py-10">
+        <JsonLd
+          data={{
+            "@context": "https://schema.org",
+            "@graph": schemaData,
+          }}
+        />
+        <ListingAnalytics listingId={listing.id} projectId={listing.projectId} />
+        <ListingDetailLayout
+          main={<HorecaListingView listing={listing} engagement={engagement} />}
+          sidebar={sidebar}
+        />
+      </div>
+    );
+  }
+
+  if (project === "auto" || listing.projectSlug === "auto") {
     return (
       <div className="py-6 sm:py-10">
         <ListingAnalytics listingId={listing.id} projectId={listing.projectId} />
         <ListingDetailLayout
-          main={<HorecaListingView listing={listing} engagement={engagement} />}
+          main={<AutoListingView listing={listing} engagement={engagement} />}
           sidebar={sidebar}
         />
       </div>

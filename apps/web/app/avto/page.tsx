@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import { Hero } from "@/components/landing/Hero";
 import { FeatureGrid } from "@/components/landing/FeatureGrid";
 import { CTASection } from "@/components/landing/CTASection";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Продаж авто",
+export const metadata: Metadata = pageMetadata({
+  title: "Продаж авто в Україні",
   description: "Купівля та продаж автомобілів по всій Україні",
-};
+  path: "/avto",
+});
 
 const brands = ["Toyota", "Volkswagen", "BMW", "Hyundai", "Renault", "Skoda"];
 
@@ -49,8 +51,8 @@ export default function AvtoPage() {
             description: "Telegram-канали по містах + сайт + месенджери.",
           },
           {
-            title: "До 10 фото",
-            description: "Завантажте якісні знімки прямо з телефону.",
+            title: "До 20 фото",
+            description: "Галерея з водяним знаком — професійний вигляд оголошення.",
           },
           {
             title: "VIP-виділення",

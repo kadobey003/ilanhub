@@ -1,6 +1,8 @@
 import {
   HORECA_SOURCE_PRODUCT,
+  buildAutoTitle,
   buildListingUrl,
+  formatAutoPostHtml,
   formatHorecaPostHtml,
   formatHorecaProductPostHtml,
   formatJobsPostHtml,
@@ -28,6 +30,17 @@ export function formatTelegramListing(ctx: ListingPublishContext): string {
 
   if (project.slug === "jobs") {
     return formatJobsPostHtml(input);
+  }
+
+  if (project.slug === "auto" && ctx.vehicle) {
+    return formatAutoPostHtml({
+      title: listing.title ?? buildAutoTitle(ctx.vehicle),
+      vehicle: ctx.vehicle,
+      city: city?.name,
+      description: listing.description,
+      contactPhone: listing.contactPhone,
+      siteUrl,
+    });
   }
 
   if (listing.sourceStep === HORECA_SOURCE_PRODUCT) {

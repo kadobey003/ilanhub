@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import { applyHorecaWatermark, isWatermarkEnabled } from "@ilanhub/watermark";
+import { applyAutoWatermark, applyHorecaWatermark, isAutoWatermarkEnabled, isWatermarkEnabled } from "@ilanhub/watermark";
 type TgFileResponse = {
   ok: boolean;
   result?: { file_path?: string };
@@ -20,7 +20,7 @@ function publicBaseUrl(): string {
 export async function mirrorTelegramMedia(
   token: string,
   ref: string,
-  opts?: { title?: string | null },
+  opts?: { title?: string | null; watermark?: "horeca" | "auto" | "off" },
 ): Promise<string | null> {  if (!ref.startsWith("tg:")) return ref;
 
   const fileId = ref.slice(3);
@@ -42,8 +42,11 @@ export async function mirrorTelegramMedia(
   if (!imgRes.ok) return null;
 
   let buffer: Buffer = Buffer.from(await imgRes.arrayBuffer());
-  if (isWatermarkEnabled()) {
+  const wm = opts?.watermark ?? "horeca";
+  if (wm === "horeca" && isWatermarkEnabled()) {
     buffer = Buffer.from(await applyHorecaWatermark(buffer, { title: opts?.title }));
+  } else if (wm === "auto" && isAutoWatermarkEnabled()) {
+    buffer = Buffer.from(await applyAutoWatermark(buffer, { title: opts?.title }));
   }
 
   const name = `${randomUUID()}.jpg`;  const dir = uploadsDir();
@@ -55,7 +58,7 @@ export async function mirrorTelegramMedia(
 export async function mirrorTelegramMediaList(
   token: string,
   refs: string[],
-  opts?: { title?: string | null },
+  opts?: { title?: string | null; watermark?: "horeca" | "auto" | "off" },
 ): Promise<string[]> {
   const out: string[] = [];
   for (const ref of refs) {

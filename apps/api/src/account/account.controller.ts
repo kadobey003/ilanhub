@@ -14,6 +14,10 @@ import {
   CreateWebHorecaListingDto,
   UploadWebPhotoDto,
 } from "./dto/web-horeca-listing.dto.js";
+import {
+  CreateWebAutoListingDto,
+  UploadAutoPhotoDto,
+} from "./dto/web-auto-listing.dto.js";
 
 @Controller("account")
 @UseGuards(AuthGuard)
@@ -54,6 +58,11 @@ export class AccountController {
     return this.accountService.uploadPhoto(dto.dataUrl);
   }
 
+  @Post("uploads/auto")
+  uploadAutoPhoto(@Body() dto: UploadAutoPhotoDto) {
+    return this.accountService.uploadAutoPhoto(dto);
+  }
+
   @Post("listings/horeca")
   createHorecaListing(
     @Req() req: { userId: string },
@@ -90,5 +99,13 @@ export class AccountController {
     @Body() dto: CreateWebHorecaListingDto,
   ) {
     return this.accountService.createJobsListing(req.userId, dto);
+  }
+
+  @Post("listings/auto")
+  createAutoListing(
+    @Req() req: { userId: string },
+    @Body() dto: CreateWebAutoListingDto,
+  ) {
+    return this.accountService.createAutoListing(req.userId, dto);
   }
 }

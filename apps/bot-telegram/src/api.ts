@@ -44,13 +44,28 @@ export interface BotListingPayload {
   listingPrice?: number;
   bundlePriceId?: string;
   mediaUrls?: string[];
-  positions: Array<{
+  positions?: Array<{
     title: string;
     salary?: string;
     workingHours?: string;
     price?: number;
     vacancyTypeId?: string;
   }>;
+  vehicle?: {
+    brand: string;
+    model: string;
+    year: number;
+    mileage: number;
+    fuelType: string;
+    transmission: string;
+    driveType?: string;
+    engineVolume?: string;
+    color?: string;
+    condition?: string;
+    vin?: string;
+    salePrice: number;
+  };
+  sourceStep?: string;
 }
 
 export interface BotListingDetail {

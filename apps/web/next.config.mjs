@@ -7,6 +7,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const nextConfig = {
   output: "standalone",
   outputFileTracingRoot: path.join(__dirname, "../../"),
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "api.telegram.org" },
+      { protocol: "http", hostname: "localhost" },
+    ],
+  },
   webpack: (config, { dev }) => {
     // Windows: persistent webpack cache can corrupt .next (ENOENT manifest / chunk errors).
     if (dev) {

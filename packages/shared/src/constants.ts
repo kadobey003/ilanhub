@@ -35,6 +35,60 @@ export const HORECA_SOURCE_VACANCY = "horeca_vacancy";
 export const HORECA_SOURCE_PRODUCT = "horeca_product";
 export const MAX_HORECA_PRODUCTS = 3;
 
+export const AUTO_SOURCE_LISTING = "auto_listing";
+export const MIN_AUTO_PHOTOS = 5;
+export const MAX_AUTO_PHOTOS = 20;
+export const MIN_AUTO_DESCRIPTION = 100;
+
+export const AUTO_BRANDS = [
+  "Toyota",
+  "Volkswagen",
+  "BMW",
+  "Mercedes-Benz",
+  "Audi",
+  "Hyundai",
+  "Kia",
+  "Renault",
+  "Skoda",
+  "Nissan",
+  "Ford",
+  "Honda",
+  "Mazda",
+  "Peugeot",
+  "Citroën",
+  "Opel",
+  "Chevrolet",
+  "Mitsubishi",
+  "Lexus",
+  "Volvo",
+  "Інше",
+] as const;
+
+export const AUTO_FUEL_LABELS: Record<string, string> = {
+  petrol: "Бензин",
+  diesel: "Дизель",
+  gas: "Газ",
+  hybrid: "Гібрид",
+  electric: "Електро",
+};
+
+export const AUTO_TRANSMISSION_LABELS: Record<string, string> = {
+  manual: "Механіка",
+  automatic: "Автомат",
+};
+
+export const AUTO_DRIVE_LABELS: Record<string, string> = {
+  fwd: "Передній",
+  rwd: "Задній",
+  awd: "Повний",
+};
+
+export const AUTO_CONDITION_LABELS: Record<string, string> = {
+  new: "Новий",
+  used: "Вживаний",
+  damaged: "Після ДТП",
+};
+
 export const BANK_TRANSFER_TIMEOUT_HOURS = 24;
 
 export const BOOST_PRICES: Record<BoostType, number> = {

@@ -13,9 +13,10 @@ import { CityChips } from "./CityChips";
 import { FeaturedListingsSection } from "./FeaturedListingsSection";
 import { JobListingCard } from "./JobListingCard";
 import { HorecaListingCard } from "@/components/horeca/HorecaListingCard";
+import { AutoListingCard } from "@/components/auto/AutoListingCard";
 import { ListingsEmptyState } from "./ListingsEmptyState";
 import { TelegramBrowseBanner } from "./TelegramBrowseBanner";
-import { isHorecaProject } from "@/lib/listings-api";
+import { isHorecaProject, isAutoProject } from "@/lib/listings-api";
 import { cityListingsPath } from "@/lib/cities";
 import type { CityOption } from "@/lib/cities";
 
@@ -71,6 +72,7 @@ export function ListingsBrowser({
 }: Props) {
   const router = useRouter();
   const horeca = horecaProp ?? isHorecaProject(project);
+  const auto = isAutoProject(project);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [businessType, setBusinessType] = useState("");
@@ -344,6 +346,8 @@ export function ListingsBrowser({
                   listing={listing}
                   project={project}
                 />
+              ) : auto ? (
+                <AutoListingCard key={listing.id} listing={listing} project={project} />
               ) : (
                 <JobListingCard key={listing.id} listing={listing} project={project} />
               ),

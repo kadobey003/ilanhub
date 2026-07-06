@@ -5,12 +5,14 @@ import { CTASection } from "@/components/landing/CTASection";
 import { JobListingCard } from "@/components/listings/JobListingCard";
 import { Button } from "@/components/ui/Button";
 import { fetchProjectListings } from "@/lib/listings-api";
+import { pageMetadata } from "@/lib/seo";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "Для роботодавців",
-  description: "Опублікуйте вакансію — автоматичний розсил по всіх каналах",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Подати вакансію в Україні — Telegram, Viber, WhatsApp",
+  description: "Опублікуйте вакансію — автоматичний розсил по всіх каналах. Знайдіть працівників швидко.",
+  path: "/robota/employer",
+});
 
 export default async function RobotaEmployerPage() {
   const listings = await fetchProjectListings("jobs");

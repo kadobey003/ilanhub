@@ -4,12 +4,14 @@ import {
   channelConfigs,
   listingMedia,
   listingPositions,
+  listingVehicle,
   listings,
   payments,
   projectAddons,
   vacancyTypes,
   type Database,
 } from "@ilanhub/database";
+import { AUTO_SOURCE_LISTING, buildAutoTitle } from "@ilanhub/shared";
 import { DRIZZLE } from "../common/constants.js";
 import { UsersService } from "../users/users.service.js";
 import type { CreateBotListingDto, UpdateBotListingDto } from "./dto/bot-listing.dto.js";
@@ -124,10 +126,13 @@ export class BotsService {
 
     if (!user) throw new Error("User not found");
 
+    const positions = dto.positions ?? [];
+    const isAuto = Boolean(dto.vehicle);
     const bundle = dto.listingPrice != null
       ? { id: dto.bundlePriceId ?? null, price: dto.listingPrice }
-      : await this.getBundlePrice(dto.projectId, dto.positions.length);
+      : await this.getBundlePrice(dto.projectId, isAuto ? 1 : Math.max(positions.length, 1));
     const totalPrice = bundle?.price ?? 0;
+    const title = dto.vehicle ? buildAutoTitle(dto.vehicle) : dto.title;
 
     const [listing] = await this.db
       .insert(listings)
@@ -137,7 +142,7 @@ export class BotsService {
         cityId: dto.cityId,
         districtId: dto.districtId,
         userId: user.id,
-        title: dto.title,
+        title,
         businessType: dto.businessType,
         address: dto.address,
         description: dto.description,
@@ -148,7 +153,7 @@ export class BotsService {
           | "viber"
           | "whatsapp"
           | "web",
-        sourceStep: dto.sourceStep,
+        sourceStep: dto.sourceStep ?? (isAuto ? AUTO_SOURCE_LISTING : undefined),
         status: "draft",
       })
       .returning();
@@ -163,14 +168,33 @@ export class BotsService {
       const token = await this.resolveTelegramToken(dto.projectId);
       if (token) {
         mediaUrls = await mirrorTelegramMediaList(token, mediaUrls, {
-          title: dto.title,
+          title,
+          watermark: isAuto ? "auto" : "horeca",
         });
       }
     }
 
-    if (dto.positions.length) {
+    if (dto.vehicle) {
+      await this.db.insert(listingVehicle).values({
+        listingId: listing.id,
+        brand: dto.vehicle.brand,
+        model: dto.vehicle.model,
+        year: dto.vehicle.year,
+        mileage: dto.vehicle.mileage,
+        fuelType: dto.vehicle.fuelType as "petrol",
+        transmission: dto.vehicle.transmission as "manual",
+        driveType: dto.vehicle.driveType as "fwd" | undefined,
+        engineVolume: dto.vehicle.engineVolume,
+        color: dto.vehicle.color,
+        condition: (dto.vehicle.condition ?? "used") as "used",
+        vin: dto.vehicle.vin,
+        salePrice: dto.vehicle.salePrice,
+      });
+    }
+
+    if (positions.length) {
       await this.db.insert(listingPositions).values(
-        dto.positions.map((p, i) => ({
+        positions.map((p, i) => ({
           listingId: listing.id,
           title: p.title,
           salary: p.salary,
@@ -275,10 +299,13 @@ export class BotsService {
       throw new BadRequestException("Listing cannot be edited");
     }
 
+    const positions = dto.positions ?? [];
+    const isAuto = Boolean(dto.vehicle);
     const bundle = dto.listingPrice != null
       ? { id: dto.bundlePriceId ?? null, price: dto.listingPrice }
-      : await this.getBundlePrice(dto.projectId, dto.positions.length);
+      : await this.getBundlePrice(dto.projectId, isAuto ? 1 : Math.max(positions.length, 1));
     const totalPrice = bundle?.price ?? 0;
+    const title = dto.vehicle ? buildAutoTitle(dto.vehicle) : dto.title;
 
     let mediaUrls = dto.mediaUrls ?? [];
     if (
@@ -288,7 +315,8 @@ export class BotsService {
       const token = await this.resolveTelegramToken(dto.projectId);
       if (token) {
         mediaUrls = await mirrorTelegramMediaList(token, mediaUrls, {
-          title: dto.title,
+          title,
+          watermark: isAuto ? "auto" : "horeca",
         });
       }
     }
@@ -300,13 +328,13 @@ export class BotsService {
         categoryId: dto.categoryId,
         cityId: dto.cityId,
         districtId: dto.districtId,
-        title: dto.title,
+        title,
         businessType: dto.businessType,
         address: dto.address,
         description: dto.description,
         contactPhone: dto.contactPhone,
         price: totalPrice,
-        sourceStep: dto.sourceStep,
+        sourceStep: dto.sourceStep ?? (isAuto ? AUTO_SOURCE_LISTING : undefined),
         updatedAt: new Date(),
       })
       .where(eq(listings.id, listingId))
@@ -318,10 +346,31 @@ export class BotsService {
     await this.db
       .delete(listingMedia)
       .where(eq(listingMedia.listingId, listingId));
+    await this.db
+      .delete(listingVehicle)
+      .where(eq(listingVehicle.listingId, listingId));
 
-    if (dto.positions.length) {
+    if (dto.vehicle) {
+      await this.db.insert(listingVehicle).values({
+        listingId,
+        brand: dto.vehicle.brand,
+        model: dto.vehicle.model,
+        year: dto.vehicle.year,
+        mileage: dto.vehicle.mileage,
+        fuelType: dto.vehicle.fuelType as "petrol",
+        transmission: dto.vehicle.transmission as "manual",
+        driveType: dto.vehicle.driveType as "fwd" | undefined,
+        engineVolume: dto.vehicle.engineVolume,
+        color: dto.vehicle.color,
+        condition: (dto.vehicle.condition ?? "used") as "used",
+        vin: dto.vehicle.vin,
+        salePrice: dto.vehicle.salePrice,
+      });
+    }
+
+    if (positions.length) {
       await this.db.insert(listingPositions).values(
-        dto.positions.map((p, i) => ({
+        positions.map((p, i) => ({
           listingId,
           title: p.title,
           salary: p.salary,

@@ -1,11 +1,15 @@
 import Link from "next/link";
-import { BRAND_NAME } from "@ilanhub/shared";
+import { BRAND_NAME, telegramBotUrl } from "@ilanhub/shared";
 import { BrandLogo } from "@/components/BrandLogo";
+
+const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME?.replace(/^@/, "");
+const botUrl = BOT_USERNAME ? telegramBotUrl(BOT_USERNAME) : null;
 
 const LINKS = {
   Робота: [
     { href: "/robota", label: "Шукаю роботу" },
     { href: "/robota/employer", label: "Для роботодавців" },
+    { href: "/jobs", label: "Вакансії" },
     { href: "/horeca", label: "Horeca" },
   ],
   Авто: [{ href: "/avto", label: "Продати авто" }],
@@ -28,6 +32,24 @@ export function Footer() {
             <p className="mt-4 text-sm text-slate-500 leading-relaxed">
               Платформа оголошень для України. Telegram, Viber, WhatsApp та веб.
             </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {botUrl && (
+                <a
+                  href={botUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#229ED9] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#1a8bc4]"
+                >
+                  ✈️ Telegram
+                </a>
+              )}
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#7360F2] px-3 py-1.5 text-xs font-semibold text-white">
+                💜 Viber
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#25D366] px-3 py-1.5 text-xs font-semibold text-white">
+                💬 WhatsApp
+              </span>
+            </div>
           </div>
           {Object.entries(LINKS).map(([title, items]) => (
             <div key={title}>

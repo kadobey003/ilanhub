@@ -1,14 +1,19 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { ListingsPageLayout } from "@/components/listings/ListingsPageLayout";
 import { fetchProjectCities } from "@/lib/cities-api";
 import { fetchProjectListings, fetchProjectBrowseMeta } from "@/lib/listings-api";
+import { pageMetadata } from "@/lib/seo";
+import { normalizeCitySlug } from "@/lib/cities";
 
 const PROJECT = "horeca";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Horeca — вакансії по всій Україні",
-  description: "Вакансії для ресторанів, кафе, барів та готелів — оберіть місто та знайдіть роботу",
-};
+  description:
+    "Вакансії для ресторанів, кафе, барів та готелів — оберіть місто та знайдіть роботу",
+  path: "/horeca/ogoloshennya",
+});
 
 export default async function HorecaAllListingsPage({
   searchParams,
@@ -16,11 +21,14 @@ export default async function HorecaAllListingsPage({
   searchParams: Promise<{ city?: string }>;
 }) {
   const { city: citySlug } = await searchParams;
+
+  if (citySlug) {
+    redirect(`/horeca/${normalizeCitySlug(citySlug)}/ogoloshennya`);
+  }
   const cities = await fetchProjectCities(PROJECT);
-  const cityName = citySlug ? cities.find((c) => c.slug === citySlug)?.name : undefined;
   const [listings, browse] = await Promise.all([
-    fetchProjectListings(PROJECT, citySlug, "vacancy"),
-    fetchProjectBrowseMeta(PROJECT, citySlug),
+    fetchProjectListings(PROJECT, undefined, "vacancy"),
+    fetchProjectBrowseMeta(PROJECT),
   ]);
 
   return (
@@ -29,8 +37,6 @@ export default async function HorecaAllListingsPage({
       listings={listings}
       cities={cities}
       browse={browse}
-      citySlug={citySlug}
-      cityName={cityName}
     />
   );
 }

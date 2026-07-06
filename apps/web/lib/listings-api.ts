@@ -62,6 +62,10 @@ export function isHorecaProject(slug: string): boolean {
   return slug === "horeca";
 }
 
+export function isAutoProject(slug: string): boolean {
+  return slug === "auto";
+}
+
 export function isVacancyStyleProject(slug: string): boolean {
   return slug === "horeca" || slug === "jobs";
 }

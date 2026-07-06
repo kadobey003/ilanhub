@@ -9,11 +9,13 @@ import { JobListingCard } from "@/components/listings/JobListingCard";
 import { TelegramBrowseBanner } from "@/components/listings/TelegramBrowseBanner";
 import { fetchProjectCities } from "@/lib/cities-api";
 import { fetchProjectListings, fetchProjectBrowseMeta } from "@/lib/listings-api";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Шукаю роботу",
-  description: "Вакансії по всій Україні — офіс, IT, виробництво, логістика",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Шукаю роботу в Україні — вакансії по містах",
+  description: "Вакансії по всій Україні — офіс, IT, виробництво, логістика. Telegram, Viber та сайт.",
+  path: "/robota",
+});
 
 export default async function RobotaSeekerPage() {
   const [cities, listings, browse] = await Promise.all([

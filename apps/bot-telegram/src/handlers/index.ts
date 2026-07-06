@@ -65,10 +65,30 @@ import {
   submitJobsListing,
 } from "../jobs-flow.js";
 import {
+  handleAutoCategory,
+  handleAutoCity,
+  handleAutoColorSkip,
+  handleAutoDailyChoice,
+  handleAutoFuel,
+  handleAutoPhoto,
+  handleAutoPhotosDone,
+  handleAutoPinChoice,
+  handleAutoScheduleSkip,
+  handleAutoText,
+  handleAutoTransmission,
+  promptPinPost as promptAutoPinPost,
+  resumeAuto,
+  showAutoPreview,
+  startNewAutoListing,
+  submitAutoListing,
+} from "../auto-flow.js";
+import {
   handleBrowseJobsCity,
   startBrowseJobs,
 } from "../browse-jobs-flow.js";
-import { HorecaStep, HorecaSellStep } from "@ilanhub/shared";
+import { HorecaStep, HorecaSellStep, AutoStep } from "@ilanhub/shared";
+
+const AUTO_SLUG = "auto";
 import {
   contactKeyboard,
   horecaContactKeyboard,
@@ -138,6 +158,9 @@ export function registerHandlers(bot: Bot): void {
   bot.command("start", handleStart);
   bot.command("continue", handleContinue);
   registerAdminHandlers(bot);
+  bot.callbackQuery(/^auto_cat:/, handleAutoCategorySelect);
+  bot.callbackQuery(/^auto_fuel:/, handleAutoFuelSelect);
+  bot.callbackQuery(/^auto_trans:/, handleAutoTransmissionSelect);
   bot.callbackQuery(/^browse_city:/, handleBrowseCitySelect);
   bot.callbackQuery(/^action:/, handleAction);
   bot.callbackQuery(/^project:/, handleProjectSelect);
@@ -203,6 +226,10 @@ async function handleContinue(ctx: Context): Promise<void> {
     await resumeJobs(ctx, session);
     return;
   }
+  if (session.flow === "auto") {
+    await resumeAuto(ctx, session);
+    return;
+  }
   if (session.flow === "browse_jobs") {
     await startBrowseJobs(ctx, session);
     return;
@@ -263,6 +290,21 @@ async function handleAction(ctx: Context): Promise<void> {
     if (session) await startNewHorecaSellListing(ctx, session);
     return;
   }
+  if (action === "auto_post") {
+    const session = await getSession(CHANNEL, userId);
+    if (session) await startNewAutoListing(ctx, session);
+    return;
+  }
+  if (action === "auto_photos_done") {
+    const session = await getSession(CHANNEL, userId);
+    if (session?.flow === "auto") await handleAutoPhotosDone(ctx, session);
+    return;
+  }
+  if (action === "auto_color_skip") {
+    const session = await getSession(CHANNEL, userId);
+    if (session?.flow === "auto") await handleAutoColorSkip(ctx, session);
+    return;
+  }
   if (action === "product_desc_skip") {
     const session = await getSession(CHANNEL, userId);
     if (session?.flow === "horeca_sell") {
@@ -275,6 +317,7 @@ async function handleAction(ctx: Context): Promise<void> {
     if (session?.flow === "horeca") await handleHorecaPinChoice(ctx, session, true);
     else if (session?.flow === "horeca_sell") await handleHorecaSellPinChoice(ctx, session, true);
     else if (session?.flow === "jobs") await handleJobsPinChoice(ctx, session, true);
+    else if (session?.flow === "auto") await handleAutoPinChoice(ctx, session, true);
     return;
   }
   if (action === "pin_no") {
@@ -282,6 +325,7 @@ async function handleAction(ctx: Context): Promise<void> {
     if (session?.flow === "horeca") await handleHorecaPinChoice(ctx, session, false);
     else if (session?.flow === "horeca_sell") await handleHorecaSellPinChoice(ctx, session, false);
     else if (session?.flow === "jobs") await handleJobsPinChoice(ctx, session, false);
+    else if (session?.flow === "auto") await handleAutoPinChoice(ctx, session, false);
     return;
   }
   if (action === "schedule_skip") {
@@ -289,6 +333,7 @@ async function handleAction(ctx: Context): Promise<void> {
     if (session?.flow === "horeca") await handleHorecaScheduleSkip(ctx, session);
     else if (session?.flow === "horeca_sell") await handleHorecaSellScheduleSkip(ctx, session);
     else if (session?.flow === "jobs") await handleJobsScheduleSkip(ctx, session);
+    else if (session?.flow === "auto") await handleAutoScheduleSkip(ctx, session);
     return;
   }
   if (action === "vacancy_desc_skip") {
@@ -302,6 +347,7 @@ async function handleAction(ctx: Context): Promise<void> {
     if (session?.flow === "horeca") await handleHorecaDailyChoice(ctx, session, true);
     else if (session?.flow === "horeca_sell") await handleHorecaSellDailyChoice(ctx, session, true);
     else if (session?.flow === "jobs") await handleJobsDailyChoice(ctx, session, true);
+    else if (session?.flow === "auto") await handleAutoDailyChoice(ctx, session, true);
     return;
   }
   if (action === "daily_no") {
@@ -309,6 +355,7 @@ async function handleAction(ctx: Context): Promise<void> {
     if (session?.flow === "horeca") await handleHorecaDailyChoice(ctx, session, false);
     else if (session?.flow === "horeca_sell") await handleHorecaSellDailyChoice(ctx, session, false);
     else if (session?.flow === "jobs") await handleJobsDailyChoice(ctx, session, false);
+    else if (session?.flow === "auto") await handleAutoDailyChoice(ctx, session, false);
     return;
   }
   if (action === "benefits_skip") {
@@ -345,6 +392,8 @@ async function handleAction(ctx: Context): Promise<void> {
     } else if (session?.flow === "jobs") {
       if (session.listingId) await showJobsChannelPreview(ctx, session);
       else await showJobsPreview(ctx, session);
+    } else if (session?.flow === "auto") {
+      await showAutoPreview(ctx, session);
     }
     return;
   }
@@ -393,6 +442,32 @@ async function handleAction(ctx: Context): Promise<void> {
   }
   if (action === "confirm") {
     const session = await getSession(CHANNEL, userId);
+    if (session?.flow === "auto") {
+      try {
+        const result = await submitAutoListing(session, userId, ctx.from?.first_name);
+        await clearSession(CHANNEL, userId);
+        const shortId = result.id.slice(0, 8);
+        try {
+          await ctx.deleteMessage();
+        } catch {
+          // ignore
+        }
+        if (result.price > 0 && result.status === "pending_payment") {
+          const payResult = await sendListingPaymentInvoice(ctx, result.id, userId);
+          if (!payResult.ok) {
+            await ctx.reply(t("bot.paymentInvoiceIntro", { id: shortId }));
+          }
+          return;
+        }
+        await ctx.reply(i18n.bot.listing_submitted.replace("{{id}}", shortId), {
+          reply_markup: submittedListingKeyboard(result.id),
+        });
+      } catch (err) {
+        console.error("submitAutoListing failed:", err);
+        await ctx.reply(i18n.bot.error);
+      }
+      return;
+    }
     if (isVacancyFlow(session?.flow) && (session.horecaStep || session.horecaSellStep)) {
       try {
         const submit =
@@ -507,7 +582,7 @@ async function handleProjectSelect(ctx: Context): Promise<void> {
   const [projectId, slug] = raw.split(":");
   const userId = String(ctx.from?.id ?? "");
 
-  if (slug !== HORECA_SLUG && slug !== JOBS_SLUG) {
+  if (slug !== HORECA_SLUG && slug !== JOBS_SLUG && slug !== AUTO_SLUG) {
     await ctx.editMessageText(i18n.bot.categoryComingSoon, {
       reply_markup: await mainMenuKeyboard(),
     });
@@ -517,6 +592,11 @@ async function handleProjectSelect(ctx: Context): Promise<void> {
   const session = (await getSession(CHANNEL, userId)) ?? createSession(userId, CHANNEL);
   session.projectId = projectId;
   await saveSession(session);
+
+  if (slug === AUTO_SLUG) {
+    await startNewAutoListing(ctx, session);
+    return;
+  }
 
   if (slug === HORECA_SLUG) {
     await ctx.editMessageText(i18n.bot.selectHorecaMode, {
@@ -548,6 +628,7 @@ async function handleCitySelect(ctx: Context): Promise<void> {
   if (session.flow === "horeca") await handleHorecaCity(ctx, session, cityId);
   else if (session.flow === "horeca_sell") await handleHorecaSellCity(ctx, session, cityId);
   else if (session.flow === "jobs") await handleJobsCity(ctx, session, cityId);
+  else if (session.flow === "auto") await handleAutoCity(ctx, session, cityId);
 }
 
 async function handleBrowseCitySelect(ctx: Context): Promise<void> {
@@ -576,6 +657,7 @@ async function handlePhoto(ctx: Context): Promise<void> {
   if (session.flow === "horeca") await handleHorecaPhoto(ctx, session);
   else if (session.flow === "horeca_sell") await handleHorecaSellPhoto(ctx, session);
   else if (session.flow === "jobs") await handleJobsPhoto(ctx, session);
+  else if (session.flow === "auto") await handleAutoPhoto(ctx, session);
 }
 
 async function handleText(ctx: Context): Promise<void> {
@@ -590,6 +672,8 @@ async function handleText(ctx: Context): Promise<void> {
     await handleHorecaSellText(ctx, session, text);
   } else if (session.flow === "jobs" && session.horecaStep) {
     await handleJobsText(ctx, session, text);
+  } else if (session.flow === "auto" && session.autoStep) {
+    await handleAutoText(ctx, session);
   }
 }
 
@@ -622,6 +706,13 @@ async function handleContact(ctx: Context): Promise<void> {
     await handleJobsContact(ctx, session, contact.phone_number);
     return;
   }
+  if (session?.flow === "auto" && session.autoStep === AutoStep.CONTACT) {
+    session.contactPhone = contact.phone_number;
+    await saveSession(session);
+    await ctx.reply(t("bot.auto.contactSaved"), { reply_markup: { remove_keyboard: true } });
+    await promptAutoPinPost(ctx, session);
+    return;
+  }
 
   try {
     await api.botContact(userId, contact.phone_number, ctx.from?.first_name);
@@ -637,4 +728,31 @@ async function handleContact(ctx: Context): Promise<void> {
       await ctx.reply(i18n.bot.error);
     }
   }
+}
+
+async function handleAutoCategorySelect(ctx: Context): Promise<void> {
+  await ctx.answerCallbackQuery();
+  const categoryId = ctx.callbackQuery?.data?.replace("auto_cat:", "") ?? "";
+  const userId = String(ctx.from?.id ?? "");
+  const session = await getSession(CHANNEL, userId);
+  if (!session || session.flow !== "auto") return;
+  await handleAutoCategory(ctx, session, categoryId);
+}
+
+async function handleAutoFuelSelect(ctx: Context): Promise<void> {
+  await ctx.answerCallbackQuery();
+  const fuel = ctx.callbackQuery?.data?.replace("auto_fuel:", "") ?? "";
+  const userId = String(ctx.from?.id ?? "");
+  const session = await getSession(CHANNEL, userId);
+  if (!session || session.flow !== "auto") return;
+  await handleAutoFuel(ctx, session, fuel as import("@ilanhub/shared").VehicleFuel);
+}
+
+async function handleAutoTransmissionSelect(ctx: Context): Promise<void> {
+  await ctx.answerCallbackQuery();
+  const transmission = ctx.callbackQuery?.data?.replace("auto_trans:", "") ?? "";
+  const userId = String(ctx.from?.id ?? "");
+  const session = await getSession(CHANNEL, userId);
+  if (!session || session.flow !== "auto") return;
+  await handleAutoTransmission(ctx, session, transmission as import("@ilanhub/shared").VehicleTransmission);
 }

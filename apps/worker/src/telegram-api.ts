@@ -105,3 +105,34 @@ export async function telegramSendMediaGroup(
   }
   return (body.result ?? []).map((m) => m.message_id);
 }
+
+export async function telegramSendMediaGroupBuffers(
+  token: string,
+  chatId: string,
+  photos: Buffer[],
+  caption?: string,
+): Promise<number[]> {
+  const form = new FormData();
+  form.append("chat_id", chatId);
+  const media = photos.map((_, i) => ({
+    type: "photo",
+    media: `attach://photo${i}`,
+    ...(i === 0 && caption ? { caption, parse_mode: "HTML" } : {}),
+  }));
+  form.append("media", JSON.stringify(media));
+  photos.forEach((buf, i) => {
+    form.append(`photo${i}`, new Blob([buf], { type: "image/jpeg" }), `photo${i}.jpg`);
+  });
+
+  const res = await fetch(`https://api.telegram.org/bot${token}/sendMediaGroup`, {
+    method: "POST",
+    body: form,
+  });
+  const body = (await res.json()) as TgResponse & {
+    result?: Array<{ message_id: number }>;
+  };
+  if (!body.ok) {
+    throw new Error(body.description ?? `sendMediaGroup HTTP ${res.status}`);
+  }
+  return (body.result ?? []).map((m) => m.message_id);
+}

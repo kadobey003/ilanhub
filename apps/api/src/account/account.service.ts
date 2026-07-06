@@ -1,11 +1,12 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { HORECA_SOURCE_PRODUCT, HORECA_SOURCE_VACANCY } from "@ilanhub/shared";
+import { AUTO_SOURCE_LISTING, HORECA_SOURCE_PRODUCT, HORECA_SOURCE_VACANCY, buildAutoTitle } from "@ilanhub/shared";
 import { desc, eq } from "drizzle-orm";
 import { categories, listings, projects, users, type Database } from "@ilanhub/database";
 import { DRIZZLE } from "../common/constants.js";
 import { BotsService } from "../bots/bots.service.js";
 import { ListingsService } from "../listings/listings.service.js";
 import type { CreateWebHorecaListingDto } from "./dto/web-horeca-listing.dto.js";
+import type { CreateWebAutoListingDto, UploadAutoPhotoDto } from "./dto/web-auto-listing.dto.js";
 import { saveWebListingPhoto } from "./web-upload.util.js";
 
 @Injectable()
@@ -149,6 +150,44 @@ export class AccountService {
   async uploadPhoto(dataUrl: string) {
     const url = await saveWebListingPhoto(dataUrl);
     return { url };
+  }
+
+  async uploadAutoPhoto(dto: UploadAutoPhotoDto) {
+    const url = await saveWebListingPhoto(dto.dataUrl, {
+      watermarkTitle: dto.watermarkTitle,
+    });
+    return { url };
+  }
+
+  async createAutoListing(userId: string, dto: CreateWebAutoListingDto) {
+    const listingDesc = [
+      dto.description,
+      dto.pinPost ? "📌 Закріплення на тиждень" : "",
+      dto.dailyDuplicate ? "🔁 Щоденне дублювання (7 днів)" : "",
+      dto.scheduledPostAt ? `📅 Заплановано: ${dto.scheduledPostAt}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    const listing = await this.botsService.createListing({
+      channel: "web",
+      externalUserId: userId,
+      projectId: dto.projectId,
+      categoryId: dto.categoryId,
+      cityId: dto.cityId,
+      title: buildAutoTitle(dto.vehicle),
+      description: listingDesc,
+      contactPhone: dto.contactPhone,
+      listingPrice: dto.listingPrice,
+      bundlePriceId: dto.bundlePriceId,
+      mediaUrls: dto.mediaUrls,
+      positions: [],
+      vehicle: dto.vehicle,
+      sourceStep: AUTO_SOURCE_LISTING,
+    });
+
+    const submitted = await this.listingsService.submit(listing.id);
+    return { data: submitted };
   }
 
   async createHorecaListing(userId: string, dto: CreateWebHorecaListingDto) {

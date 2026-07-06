@@ -10,6 +10,7 @@ import {
   listingComments,
   listingMedia,
   listingPositions,
+  listingVehicle,
   listings,
   projectChannelCities,
   projects,
@@ -247,6 +248,12 @@ export class ListingsPublicService {
 
     const featured = await this.featuredListingIds([id]);
 
+    const [vehicleRow] = await this.db
+      .select()
+      .from(listingVehicle)
+      .where(eq(listingVehicle.listingId, id))
+      .limit(1);
+
     return {
       id: row.listing.id,
       projectId: row.listing.projectId,
@@ -255,7 +262,7 @@ export class ListingsPublicService {
       address: row.listing.address,
       description: row.listing.description,
       contactPhone: row.listing.contactPhone,
-      price: row.listing.price,
+      price: vehicleRow?.salePrice ?? row.listing.price,
       currency: row.listing.currency,
       publishedAt: row.listing.publishedAt,
       isPinned: row.listing.isPinned,
@@ -264,9 +271,26 @@ export class ListingsPublicService {
       projectSlug: row.project.slug,
       projectName: row.project.name,
       categoryName: row.category.name,
+      categorySlug: row.category.slug,
       city: row.city ? { name: row.city.name, slug: row.city.slug } : null,
       district: row.district ? { name: row.district.name } : null,
       imageUrl,
+      vehicle: vehicleRow
+        ? {
+            brand: vehicleRow.brand,
+            model: vehicleRow.model,
+            year: vehicleRow.year,
+            mileage: vehicleRow.mileage,
+            fuelType: vehicleRow.fuelType,
+            transmission: vehicleRow.transmission,
+            driveType: vehicleRow.driveType,
+            engineVolume: vehicleRow.engineVolume,
+            color: vehicleRow.color,
+            condition: vehicleRow.condition,
+            vin: vehicleRow.vin,
+            salePrice: vehicleRow.salePrice,
+          }
+        : null,
       media: await Promise.all(
         media.map(async (m) => ({
           url: (await this.resolveMediaUrl(m.url, row.listing.projectId)) ?? m.url,
@@ -423,6 +447,11 @@ export class ListingsPublicService {
       .where(inArray(listingMedia.listingId, listingIds))
       .orderBy(asc(listingMedia.sortOrder));
 
+    const allVehicles = await this.db
+      .select()
+      .from(listingVehicle)
+      .where(inArray(listingVehicle.listingId, listingIds));
+
     const positionsByListing = new Map<string, typeof allPositions>();
     for (const p of allPositions) {
       const list = positionsByListing.get(p.listingId) ?? [];
@@ -437,12 +466,17 @@ export class ListingsPublicService {
       }
     }
 
+    const vehicleByListing = new Map(
+      allVehicles.map((v) => [v.listingId, v]),
+    );
+
     const featured = await this.featuredListingIds(listingIds);
 
     return Promise.all(
       rows.map(async ({ listing, city, category }) => {
         const positions = positionsByListing.get(listing.id) ?? [];
         const cover = mediaByListing.get(listing.id);
+        const vehicle = vehicleByListing.get(listing.id);
         const imageUrl = cover?.url
           ? await this.resolveMediaUrl(cover.url, project.id)
           : null;
@@ -459,9 +493,17 @@ export class ListingsPublicService {
           categoryName: category.name,
           imageUrl,
           vacancyCount: positions.length,
-          firstVacancyTitle: positions[0]?.title ?? null,
-          firstSalary: positions[0]?.salary ?? null,
+          firstVacancyTitle: vehicle
+            ? `${vehicle.brand} ${vehicle.model}`
+            : positions[0]?.title ?? null,
+          firstSalary: vehicle
+            ? `${vehicle.salePrice.toLocaleString("uk-UA")} ₴`
+            : positions[0]?.salary ?? null,
           positionTitles: positions.map((p) => p.title),
+          vehicleYear: vehicle?.year ?? null,
+          vehicleMileage: vehicle?.mileage ?? null,
+          vehicleFuel: vehicle?.fuelType ?? null,
+          salePrice: vehicle?.salePrice ?? null,
           publishedAt: listing.publishedAt,
           isPinned: listing.isPinned,
           isFeatured: featured.has(listing.id),

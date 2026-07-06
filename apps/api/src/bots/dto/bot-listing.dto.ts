@@ -10,6 +10,7 @@ import {
   ValidateNested,
 } from "class-validator";
 import { Type } from "class-transformer";
+import { BotVehicleDto } from "./bot-vehicle.dto.js";
 
 export class BotListingPositionDto {
   @IsString()
@@ -103,10 +104,16 @@ export class CreateBotListingDto {
   @MaxLength(64)
   sourceStep?: string;
 
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => BotListingPositionDto)
-  positions!: BotListingPositionDto[];
+  positions?: BotListingPositionDto[];
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => BotVehicleDto)
+  vehicle?: BotVehicleDto;
 }
 
 export class UpdateBotListingDto extends CreateBotListingDto {}

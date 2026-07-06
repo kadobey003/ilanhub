@@ -1,4 +1,5 @@
 import { HorecaListingCard } from "@/components/horeca/HorecaListingCard";
+import { AutoListingCard } from "@/components/auto/AutoListingCard";
 import { JobListingCard } from "./JobListingCard";
 import type { PublicListingSummary } from "@/lib/listings-types";
 
@@ -27,6 +28,8 @@ export function FeaturedListingsSection({ listings, project, horeca }: Props) {
               project={project}
               featured
             />
+          ) : project === "auto" ? (
+            <AutoListingCard key={listing.id} listing={listing} project={project} />
           ) : (
             <JobListingCard key={listing.id} listing={listing} project={project} />
           ),

@@ -5,22 +5,16 @@ import { CTASection } from "@/components/landing/CTASection";
 import { HorecaListingCard } from "@/components/horeca/HorecaListingCard";
 import { Button } from "@/components/ui/Button";
 import { fetchProjectListings } from "@/lib/listings-api";
+import { pageMetadata } from "@/lib/seo";
+import { HORECA_ROLES } from "@/lib/seo-content";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "Horeca — Ресторани та готелі",
-  description: "Вакансії та продаж б/в обладнання для ресторанів, кафе, барів та готелів",
-};
-
-const roles = [
-  "Кухар",
-  "Бармен",
-  "Офіціант",
-  "Адміністратор",
-  "Повар",
-  "Хостес",
-  "Менеджер залу",
-];
+export const metadata: Metadata = pageMetadata({
+  title: "Horeca вакансії Україна — ресторани, кафе, готелі",
+  description:
+    "Вакансії та продаж б/в обладнання для ресторанів, кафе, барів та готелів. Кухар, офіціант, бармен.",
+  path: "/horeca",
+});
 
 const equipment = [
   "Плити та печі",
@@ -58,13 +52,14 @@ export default async function HorecaPage() {
       <section className="mb-12">
         <h2 className="text-xl font-bold text-slate-900">Популярні позиції</h2>
         <div className="mt-4 flex flex-wrap gap-2">
-          {roles.map((role) => (
-            <span
-              key={role}
-              className="rounded-full bg-amber-100 px-4 py-2 text-sm font-medium text-amber-900"
+          {HORECA_ROLES.map((role) => (
+            <Link
+              key={role.slug}
+              href={`/horeca/vakansiyi/${role.slug}`}
+              className="rounded-full bg-amber-100 px-4 py-2 text-sm font-medium text-amber-900 hover:bg-amber-200 transition"
             >
-              {role}
-            </span>
+              {role.name}
+            </Link>
           ))}
         </div>
       </section>

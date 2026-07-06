@@ -2,12 +2,10 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ListingsPageLayout } from "@/components/listings/ListingsPageLayout";
 import { fetchProjectCities } from "@/lib/cities-api";
-import {
-  cityDisplayName,
-  normalizeCitySlug,
-} from "@/lib/cities";
-import { fetchProjectListings, fetchProjectBrowseMeta } from "@/lib/listings-api";
+import { cityDisplayName, normalizeCitySlug } from "@/lib/cities";
+import { fetchProjectListings, fetchProjectBrowseMeta, isHorecaProject } from "@/lib/listings-api";
 import { getProjectMeta } from "@/lib/project-meta";
+import { pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata({
   params,
@@ -16,11 +14,13 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { project, city } = await params;
   const meta = getProjectMeta(project);
-  const cityName = cityDisplayName(city);
-  return {
+  const citySlug = normalizeCitySlug(city);
+  const cityName = cityDisplayName(citySlug);
+  return pageMetadata({
     title: `${meta.title} — ${cityName}`,
     description: `Вакансії та оголошення у місті ${cityName} на UAREKLAMHUB`,
-  };
+    path: `/${project}/${citySlug}/ogoloshennya`,
+  });
 }
 
 export default async function CityListingsPage({
@@ -37,7 +37,11 @@ export default async function CityListingsPage({
   }
 
   const [listings, cities, browse] = await Promise.all([
-    fetchProjectListings(project, citySlug),
+    fetchProjectListings(
+      project,
+      citySlug,
+      isHorecaProject(project) ? "vacancy" : undefined,
+    ),
     fetchProjectCities(project),
     fetchProjectBrowseMeta(project, citySlug),
   ]);

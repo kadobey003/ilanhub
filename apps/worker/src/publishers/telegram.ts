@@ -1,10 +1,11 @@
 import { and, eq } from "drizzle-orm";
 import { channelConfigs, type Database } from "@ilanhub/database";
 import { formatTelegramListing } from "../format-listing.js";
-import { prepareHorecaPhoto } from "../watermark.js";
+import { prepareHorecaPhoto, prepareAutoPhoto } from "../watermark.js";
 import { fetchPhotoBuffer } from "../photo-source.js";
 import {
   telegramSendMediaGroup,
+  telegramSendMediaGroupBuffers,
   telegramSendMessage,
   telegramSendPhoto,
   telegramSendPhotoBuffer,
@@ -16,16 +17,20 @@ async function sendSinglePhoto(opts: {
   chatId: string;
   caption: string;
   ref: string;
-  useWatermark: boolean;
+  projectSlug: string;
   watermarkTitle: string;
   errors: string[];
 }): Promise<number> {
-  const { token, chatId, caption, ref, useWatermark, watermarkTitle, errors } =
+  const { token, chatId, caption, ref, projectSlug, watermarkTitle, errors } =
     opts;
+  const useWatermark = projectSlug === "horeca" || projectSlug === "auto";
 
   if (useWatermark) {
     try {
-      const watermarked = await prepareHorecaPhoto(token, ref, watermarkTitle);
+      const watermarked =
+        projectSlug === "auto"
+          ? await prepareAutoPhoto(token, ref, watermarkTitle)
+          : await prepareHorecaPhoto(token, ref, watermarkTitle);
       return await telegramSendPhotoBuffer(token, chatId, watermarked, caption);
     } catch (err) {
       errors.push(`watermark: ${err instanceof Error ? err.message : String(err)}`);
@@ -45,6 +50,40 @@ async function sendSinglePhoto(opts: {
     errors.push(`photo: ${err instanceof Error ? err.message : String(err)}`);
     throw new Error(errors.join("; "));
   }
+}
+
+async function sendWatermarkedAlbum(opts: {
+  token: string;
+  chatId: string;
+  photos: string[];
+  caption: string;
+  projectSlug: string;
+  watermarkTitle: string;
+}): Promise<number> {
+  const { token, chatId, photos, caption, projectSlug, watermarkTitle } = opts;
+  const prepare =
+    projectSlug === "auto" ? prepareAutoPhoto : prepareHorecaPhoto;
+  const chunks: string[][] = [];
+  for (let i = 0; i < photos.length; i += 10) {
+    chunks.push(photos.slice(i, i + 10));
+  }
+
+  let firstMessageId = 0;
+  for (let c = 0; c < chunks.length; c++) {
+    const chunk = chunks[c]!;
+    const buffers: Buffer[] = [];
+    for (const ref of chunk) {
+      buffers.push(await prepare(token, ref, watermarkTitle));
+    }
+    const ids = await telegramSendMediaGroupBuffers(
+      token,
+      chatId,
+      buffers,
+      c === 0 ? caption : undefined,
+    );
+    if (!firstMessageId) firstMessageId = ids[0] ?? 0;
+  }
+  return firstMessageId;
 }
 
 async function resolveBotToken(
@@ -92,11 +131,12 @@ export function createTelegramPublisher(db: Database): Publisher {
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map((m) => m.url)
         .filter(Boolean);
-      const useWatermark = ctx.project.slug === "horeca";
+      const projectSlug = ctx.project.slug;
+      const useWatermark = projectSlug === "horeca" || projectSlug === "auto";
       const watermarkTitle =
         ctx.listing.title?.trim() ||
         ctx.listing.businessType?.trim() ||
-        "Horeca";
+        (projectSlug === "auto" ? "Авто" : "Horeca");
 
       let messageId: number;
 
@@ -113,9 +153,18 @@ export function createTelegramPublisher(db: Database): Publisher {
           chatId,
           caption,
           ref: photos[0]!,
-          useWatermark,
+          projectSlug,
           watermarkTitle,
           errors: photoErrors,
+        });
+      } else if (useWatermark && projectSlug === "auto") {
+        messageId = await sendWatermarkedAlbum({
+          token,
+          chatId,
+          photos,
+          caption,
+          projectSlug,
+          watermarkTitle,
         });
       } else if (useWatermark) {
         try {
@@ -148,6 +197,9 @@ export function createTelegramPublisher(db: Database): Publisher {
           caption,
         );
         messageId = ids[0] ?? 0;
+        if (photos.length > 10) {
+          await telegramSendMediaGroup(token, chatId, photos.slice(10, 20));
+        }
       }
 
       if (!messageId) {

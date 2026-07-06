@@ -60,6 +60,19 @@ export function isWatermarkEnabled(): boolean {
   return true;
 }
 
+export function isAutoWatermarkEnabled(): boolean {
+  const flag = process.env.AUTO_WATERMARK?.trim().toLowerCase();
+  if (flag === "0" || flag === "false" || flag === "off") return false;
+  if (flag === "1" || flag === "true" || flag === "on") return true;
+  return true;
+}
+
+function autoLogoPath(): string {
+  const fromEnv = process.env.AUTO_LOGO_PATH?.trim();
+  if (fromEnv && existsSync(fromEnv)) return fromEnv;
+  return defaultLogoPath();
+}
+
 export function resolveWatermarkLogoPath(): string {
   return defaultLogoPath();
 }
@@ -76,6 +89,44 @@ export async function applyHorecaWatermark(
   const pad = Math.round(Math.min(width, height) * 0.025);
   const logoSize = Math.round(width * 0.17);
   const logo = await sharp(loadLogo(opts.logoPath))
+    .resize(logoSize, logoSize, { fit: "cover" })
+    .png()
+    .toBuffer();
+
+  const composites: sharp.OverlayOptions[] = [
+    { input: logo, top: pad, left: pad },
+  ];
+
+  if (opts.title?.trim()) {
+    const banner = titleBannerSvg(width, opts.title);
+    const bannerPng = await sharp(banner).png().toBuffer();
+    const bannerMeta = await sharp(bannerPng).metadata();
+    const bannerH = bannerMeta.height ?? Math.round(width * 0.12);
+    composites.push({
+      input: bannerPng,
+      top: Math.max(0, height - bannerH - pad),
+      left: 0,
+    });
+  }
+
+  return base
+    .composite(composites)
+    .jpeg({ quality: 90, mozjpeg: true })
+    .toBuffer();
+}
+
+export async function applyAutoWatermark(
+  input: Buffer,
+  opts: WatermarkOptions = {},
+): Promise<Buffer> {
+  const base = sharp(input).rotate();
+  const meta = await base.metadata();
+  const width = meta.width ?? 1200;
+  const height = meta.height ?? 800;
+
+  const pad = Math.round(Math.min(width, height) * 0.025);
+  const logoSize = Math.round(width * 0.17);
+  const logo = await sharp(loadLogo(opts.logoPath ?? autoLogoPath()))
     .resize(logoSize, logoSize, { fit: "cover" })
     .png()
     .toBuffer();

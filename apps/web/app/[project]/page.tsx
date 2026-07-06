@@ -3,6 +3,7 @@ import { ListingsPageLayout } from "@/components/listings/ListingsPageLayout";
 import { fetchProjectCities } from "@/lib/cities-api";
 import { fetchProjectListings, fetchProjectBrowseMeta } from "@/lib/listings-api";
 import { getProjectMeta } from "@/lib/project-meta";
+import { pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata({
   params,
@@ -11,10 +12,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { project } = await params;
   const meta = getProjectMeta(project);
-  return {
+  return pageMetadata({
     title: meta.title,
     description: meta.subtitle,
-  };
+    path: project === "jobs" ? "/jobs" : `/${project}`,
+  });
 }
 
 export default async function ProjectPage({

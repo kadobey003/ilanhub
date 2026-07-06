@@ -8,12 +8,15 @@ import { TelegramBrowseBanner } from "@/components/listings/TelegramBrowseBanner
 import { Button } from "@/components/ui/Button";
 import { fetchProjectCities } from "@/lib/cities-api";
 import { fetchProjectListings, fetchProjectBrowseMeta } from "@/lib/listings-api";
+import { pageMetadata } from "@/lib/seo";
+import { JOB_CATEGORIES } from "@/lib/seo-content";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "Робота — вакансії",
+export const metadata: Metadata = pageMetadata({
+  title: "Робота — вакансії по всій Україні",
   description: "Вакансії по всій Україні — офіс, IT, виробництво, логістика",
-};
+  path: "/jobs",
+});
 
 export default async function JobsPage() {
   const [listings, cities, browse] = await Promise.all([
@@ -45,6 +48,21 @@ export default async function JobsPage() {
             channels={browse.telegramChannels}
             botUsername={browse.botUsername}
           />
+        </section>
+
+        <section className="pb-8">
+          <h2 className="text-lg font-bold text-slate-900">Категорії</h2>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {JOB_CATEGORIES.map((cat) => (
+              <Link
+                key={cat.slug}
+                href={`/jobs/kategoriya/${cat.slug}`}
+                className="rounded-full bg-blue-100 px-4 py-2 text-sm font-medium text-blue-900 hover:bg-blue-200 transition"
+              >
+                {cat.name}
+              </Link>
+            ))}
+          </div>
         </section>
 
         <section className="pb-8">

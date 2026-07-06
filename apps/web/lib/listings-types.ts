@@ -38,6 +38,10 @@ export interface PublicListingSummary {
   isPinned?: boolean;
   isFeatured?: boolean;
   sourceStep?: string | null;
+  vehicleYear?: number | null;
+  vehicleMileage?: number | null;
+  vehicleFuel?: string | null;
+  salePrice?: number | null;
 }
 
 export function isHorecaProductListing(listing: { sourceStep?: string | null }): boolean {
@@ -61,6 +65,21 @@ export interface ProjectBrowseMeta {
   botUsername: string | null;
 }
 
+export interface PublicVehicle {
+  brand: string;
+  model: string;
+  year: number;
+  mileage: number;
+  fuelType: string;
+  transmission: string;
+  driveType?: string | null;
+  engineVolume?: string | null;
+  color?: string | null;
+  condition: string;
+  vin?: string | null;
+  salePrice: number;
+}
+
 export interface PublicListingDetail extends PublicListingSummary {
   projectId: string;
   description?: string | null;
@@ -73,4 +92,6 @@ export interface PublicListingDetail extends PublicListingSummary {
   district?: { name: string } | null;
   media: { url: string; sortOrder: number }[];
   positions: PublicListingPosition[];
+  vehicle?: PublicVehicle | null;
+  categorySlug?: string | null;
 }
