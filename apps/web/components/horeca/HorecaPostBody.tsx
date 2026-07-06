@@ -81,7 +81,6 @@ export function HorecaPostBody({ listing }: Props) {
     benefits: listing.description,
     positions,
   };
-  const isJobs = listing.projectSlug === "jobs";
   const sections = isJobs
     ? buildJobsPostSections(input)
     : buildHorecaPostSections(input);
