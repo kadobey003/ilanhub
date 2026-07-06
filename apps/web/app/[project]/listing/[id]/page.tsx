@@ -11,6 +11,7 @@ import {
   fetchProjectListings,
   isVacancyStyleProject,
 } from "@/lib/listings-api";
+import { rankRelatedListings } from "@/lib/listing-utils";
 
 export async function generateMetadata({
   params,
@@ -20,9 +21,26 @@ export async function generateMetadata({
   const { id } = await params;
   const listing = await fetchListingDetail(id);
   if (!listing?.title) return { title: "Оголошення" };
+  const description =
+    listing.firstVacancyTitle ??
+    listing.address ??
+    listing.description ??
+    undefined;
   return {
     title: listing.title,
-    description: listing.address ?? undefined,
+    description,
+    openGraph: {
+      title: listing.title,
+      description,
+      images: listing.imageUrl ? [{ url: listing.imageUrl, alt: listing.title }] : [],
+      type: "article",
+    },
+    twitter: {
+      card: listing.imageUrl ? "summary_large_image" : "summary",
+      title: listing.title,
+      description,
+      images: listing.imageUrl ? [listing.imageUrl] : [],
+    },
   };
 }
 
@@ -42,9 +60,11 @@ export default async function ListingDetailPage({
     notFound();
   }
 
+  const related = rankRelatedListings(relatedListings, listing);
+
   const sidebar = (
     <RelatedListingsSidebar
-      listings={relatedListings}
+      listings={related}
       project={project}
       currentId={listing.id}
     />

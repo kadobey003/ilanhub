@@ -49,4 +49,58 @@
   .app-gradient-hero {
     background: linear-gradient(145deg, #2563eb 0%, #4f46e5 45%, #7c3aed 100%);
   }
+
+  .app-gradient-horeca {
+    background: linear-gradient(145deg, #f59e0b 0%, #ea580c 45%, #dc2626 100%);
+  }
+
+  .skeleton-shimmer {
+    @apply animate-pulse bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 bg-[length:200%_100%];
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+}
+
+/* Horeca dark mode */
+html.horeca-dark body {
+  @apply bg-slate-900 text-slate-100;
+}
+
+html.horeca-dark .horeca-detail-card {
+  @apply border-slate-700 bg-slate-800 text-slate-100;
+}
+
+html.horeca-dark .horeca-detail-card .text-slate-900,
+html.horeca-dark .horeca-detail-card .text-slate-800,
+html.horeca-dark .horeca-detail-card .text-slate-700 {
+  @apply text-slate-100;
+}
+
+html.horeca-dark .horeca-detail-card .text-slate-600,
+html.horeca-dark .horeca-detail-card .text-slate-500,
+html.horeca-dark .horeca-detail-card .text-slate-400 {
+  @apply text-slate-400;
+}
+
+html.horeca-dark .horeca-detail-card .border-slate-100,
+html.horeca-dark .horeca-detail-card .border-slate-200 {
+  @apply border-slate-700;
+}
+
+html.horeca-dark .horeca-detail-card .bg-slate-50\/80,
+html.horeca-dark .horeca-detail-card .bg-slate-50\/50 {
+  @apply bg-slate-700/50;
+}
+
+html.horeca-dark .horeca-detail-card input,
+html.horeca-dark .horeca-detail-card textarea {
+  @apply border-slate-600 bg-slate-700 text-slate-100;
 }

@@ -245,6 +245,8 @@ export class ListingsPublicService {
       ? await this.resolveMediaUrl(media[0].url, row.listing.projectId)
       : null;
 
+    const featured = await this.featuredListingIds([id]);
+
     return {
       id: row.listing.id,
       projectId: row.listing.projectId,
@@ -256,6 +258,8 @@ export class ListingsPublicService {
       price: row.listing.price,
       currency: row.listing.currency,
       publishedAt: row.listing.publishedAt,
+      isPinned: row.listing.isPinned,
+      isFeatured: featured.has(id),
       projectSlug: row.project.slug,
       projectName: row.project.name,
       categoryName: row.category.name,
@@ -384,7 +388,12 @@ export class ListingsPublicService {
           cityId ? eq(listings.cityId, cityId) : undefined,
         ),
       )
-      .orderBy(desc(listings.publishedAt), desc(listings.createdAt));
+      .orderBy(
+        desc(listings.isPinned),
+        desc(listings.boostScore),
+        desc(listings.publishedAt),
+        desc(listings.createdAt),
+      );
 
     if (!rows.length) return [];
 
@@ -415,6 +424,8 @@ export class ListingsPublicService {
       }
     }
 
+    const featured = await this.featuredListingIds(listingIds);
+
     return Promise.all(
       rows.map(async ({ listing, city, category }) => {
         const positions = positionsByListing.get(listing.id) ?? [];
@@ -439,6 +450,8 @@ export class ListingsPublicService {
           firstSalary: positions[0]?.salary ?? null,
           positionTitles: positions.map((p) => p.title),
           publishedAt: listing.publishedAt,
+          isPinned: listing.isPinned,
+          isFeatured: featured.has(listing.id),
         };
       }),
     );

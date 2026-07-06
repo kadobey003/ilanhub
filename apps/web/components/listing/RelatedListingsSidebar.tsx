@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { projectAllListingsPath } from "@/lib/cities";
 import type { PublicListingSummary } from "@/lib/listings-types";
 
 interface Props {
@@ -26,34 +27,32 @@ function Thumbnail({ src, title }: { src?: string | null; title: string }) {
 }
 
 export function RelatedListingsSidebar({ listings, project, currentId }: Props) {
-  const others = listings.filter((l) => l.id !== currentId).slice(0, 8);
-
-  if (!others.length) return null;
+  if (!listings.length) return null;
 
   return (
-    <aside className="space-y-4">
+    <aside className="horeca-detail-card space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">
-          Інші оголошення
+          Схожі оголошення
         </h2>
         <Link
-          href={`/${project}`}
-          className="text-xs font-medium text-brand hover:underline"
+          href={projectAllListingsPath(project)}
+          className="text-xs font-medium text-amber-700 hover:underline"
         >
           Усі →
         </Link>
       </div>
 
       <div className="space-y-3">
-        {others.map((listing) => (
+        {listings.map((listing) => (
           <Link
             key={listing.id}
             href={`/${project}/listing/${listing.id}`}
-            className="group flex gap-3 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm transition hover:border-brand/30 hover:shadow-md"
+            className="group flex gap-3 rounded-xl border border-slate-100 bg-slate-50/50 p-2.5 transition hover:border-amber-200 hover:bg-white hover:shadow-md"
           >
             <Thumbnail src={listing.imageUrl} title={listing.title ?? "Заклад"} />
             <div className="min-w-0 flex-1 py-0.5">
-              <p className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 group-hover:text-brand">
+              <p className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900 group-hover:text-amber-700">
                 {listing.title ?? listing.firstVacancyTitle ?? "Вакансія"}
               </p>
               {listing.firstVacancyTitle && listing.title && (
@@ -61,9 +60,14 @@ export function RelatedListingsSidebar({ listings, project, currentId }: Props) 
                   {listing.firstVacancyTitle}
                 </p>
               )}
-              {listing.cityName && (
-                <p className="mt-1 text-xs text-slate-400">📍 {listing.cityName}</p>
-              )}
+              <div className="mt-1 flex flex-wrap gap-2 text-xs text-slate-400">
+                {listing.cityName && <span>📍 {listing.cityName}</span>}
+                {listing.firstSalary && (
+                  <span className="font-medium text-emerald-700">
+                    {listing.firstSalary}
+                  </span>
+                )}
+              </div>
             </div>
           </Link>
         ))}

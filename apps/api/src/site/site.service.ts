@@ -1,7 +1,8 @@
 import { Inject, Injectable, BadRequestException } from "@nestjs/common";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { BRAND_LOGO_PATH, BRAND_NAME, telegramPublicUrl } from "@ilanhub/shared";
 import {
+  analyticsEvents,
   channelConfigs,
   cities,
   projectChannelCities,
@@ -21,11 +22,22 @@ export type PublicTelegramChannel = {
   projectName: string;
   cities: string[];
   memberCount: number | null;
+  photoUrl: string | null;
+  joinedThisWeek: number | null;
+};
+
+export type TelegramChannelsPayload = {
+  channels: PublicTelegramChannel[];
+  totalMembers: number;
+  joinedThisWeek: number;
+  botUsername: string | null;
 };
 
 const CHANNELS_CACHE_TTL_MS = 15 * 60 * 1000;
-let channelsCache: { data: PublicTelegramChannel[]; expires: number } | null =
-  null;
+let channelsCache: {
+  data: PublicTelegramChannel[];
+  expires: number;
+} | null = null;
 
 @Injectable()
 export class SiteService {
@@ -52,23 +64,160 @@ export class SiteService {
     return process.env.TELEGRAM_BOT_TOKEN?.trim() || null;
   }
 
-  private async fetchMemberCount(
-    token: string,
-    channelId: string,
-  ): Promise<number | null> {
+  private normalizeChatId(channelId: string): string | null {
     const raw = channelId.trim();
     if (!raw) return null;
-    const chatId =
-      raw.startsWith("@") || /^-?\d+$/.test(raw) ? raw : `@${raw}`;
+    if (raw.startsWith("@") || /^-?\d+$/.test(raw)) return raw;
+    if (/^[a-zA-Z0-9_]{4,}$/.test(raw)) return `@${raw}`;
+    return raw;
+  }
+
+  private async resolveBotUsername(): Promise<string | null> {
+    const fromEnv = process.env.TELEGRAM_BOT_USERNAME?.trim().replace(/^@/, "");
+    if (fromEnv) return fromEnv;
+
+    const rows = await this.db
+      .select({ config: channelConfigs.config })
+      .from(channelConfigs)
+      .where(
+        and(
+          eq(channelConfigs.channel, "telegram"),
+          eq(channelConfigs.purpose, "listing_input"),
+          eq(channelConfigs.isActive, true),
+        ),
+      )
+      .limit(1);
+
+    const username = String(
+      (rows[0]?.config as Record<string, unknown> | undefined)?.botUsername ?? "",
+    )
+      .replace(/^@/, "")
+      .trim();
+    return username || null;
+  }
+
+  private async fetchChatMeta(
+    token: string,
+    channelId: string,
+  ): Promise<{ memberCount: number | null; photoUrl: string | null }> {
+    const chatId = this.normalizeChatId(channelId);
+    if (!chatId) return { memberCount: null, photoUrl: null };
+
     try {
-      const res = await fetch(
-        `https://api.telegram.org/bot${token}/getChatMemberCount?chat_id=${encodeURIComponent(chatId)}`,
-      );
-      const body = (await res.json()) as { ok: boolean; result?: number };
-      return body.ok && typeof body.result === "number" ? body.result : null;
+      const [countRes, chatRes] = await Promise.all([
+        fetch(
+          `https://api.telegram.org/bot${token}/getChatMemberCount?chat_id=${encodeURIComponent(chatId)}`,
+        ),
+        fetch(
+          `https://api.telegram.org/bot${token}/getChat?chat_id=${encodeURIComponent(chatId)}`,
+        ),
+      ]);
+
+      const countBody = (await countRes.json()) as {
+        ok: boolean;
+        result?: number;
+      };
+      const chatBody = (await chatRes.json()) as {
+        ok: boolean;
+        result?: { photo?: { small_file_id?: string } };
+      };
+
+      const memberCount =
+        countBody.ok && typeof countBody.result === "number"
+          ? countBody.result
+          : null;
+
+      let photoUrl: string | null = null;
+      const fileId = chatBody.result?.photo?.small_file_id;
+      if (fileId) {
+        const fileRes = await fetch(
+          `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`,
+        );
+        const fileBody = (await fileRes.json()) as {
+          ok: boolean;
+          result?: { file_path?: string };
+        };
+        if (fileBody.ok && fileBody.result?.file_path) {
+          photoUrl = `https://api.telegram.org/file/bot${token}/${fileBody.result.file_path}`;
+        }
+      }
+
+      return { memberCount, photoUrl };
     } catch {
-      return null;
+      return { memberCount: null, photoUrl: null };
     }
+  }
+
+  private async recordMemberSnapshots(
+    channels: PublicTelegramChannel[],
+  ): Promise<void> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (const ch of channels) {
+      if (ch.memberCount == null) continue;
+
+      const [existing] = await this.db
+        .select({ id: analyticsEvents.id })
+        .from(analyticsEvents)
+        .where(
+          and(
+            eq(analyticsEvents.eventType, "telegram_member_snapshot"),
+            sql`${analyticsEvents.metadata}->>'channelId' = ${ch.channelId}`,
+            gte(analyticsEvents.createdAt, today),
+          ),
+        )
+        .limit(1);
+
+      if (existing) continue;
+
+      await this.db.insert(analyticsEvents).values({
+        eventType: "telegram_member_snapshot",
+        channel: "telegram",
+        metadata: {
+          channelConfigId: ch.id,
+          channelId: ch.channelId,
+          memberCount: ch.memberCount,
+        },
+      });
+    }
+  }
+
+  private async computeJoinedThisWeek(
+    channels: PublicTelegramChannel[],
+  ): Promise<number> {
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    let total = 0;
+
+    for (const ch of channels) {
+      ch.joinedThisWeek = null;
+      if (ch.memberCount == null) continue;
+
+      const [oldSnapshot] = await this.db
+        .select({ metadata: analyticsEvents.metadata })
+        .from(analyticsEvents)
+        .where(
+          and(
+            eq(analyticsEvents.eventType, "telegram_member_snapshot"),
+            sql`${analyticsEvents.metadata}->>'channelId' = ${ch.channelId}`,
+            lte(analyticsEvents.createdAt, weekAgo),
+          ),
+        )
+        .orderBy(desc(analyticsEvents.createdAt))
+        .limit(1);
+
+      if (!oldSnapshot) continue;
+
+      const oldCount = Number(
+        (oldSnapshot.metadata as Record<string, unknown>)?.memberCount ?? 0,
+      );
+      if (oldCount > 0 && ch.memberCount > oldCount) {
+        ch.joinedThisWeek = ch.memberCount - oldCount;
+        total += ch.joinedThisWeek;
+      }
+    }
+
+    return total;
   }
 
   async getTelegramChannels(): Promise<PublicTelegramChannel[]> {
@@ -112,7 +261,15 @@ export class SiteService {
 
     const token = this.resolveBotToken();
     const seen = new Set<string>();
-    const result: PublicTelegramChannel[] = [];
+    const pending: Array<{
+      id: string;
+      name: string;
+      url: string;
+      channelId: string;
+      projectSlug: string;
+      projectName: string;
+      cities: string[];
+    }> = [];
 
     for (const ch of channelRows) {
       const cfg = (ch.config ?? {}) as Record<string, unknown>;
@@ -120,12 +277,7 @@ export class SiteService {
       const url = telegramPublicUrl(channelId);
       if (!url || seen.has(channelId)) continue;
       seen.add(channelId);
-
-      const memberCount = token
-        ? await this.fetchMemberCount(token, channelId)
-        : null;
-
-      result.push({
+      pending.push({
         id: ch.id,
         name: ch.name ?? channelId,
         url,
@@ -133,21 +285,39 @@ export class SiteService {
         projectSlug: ch.projectSlug,
         projectName: ch.projectName,
         cities: citiesByChannel.get(ch.id) ?? [],
-        memberCount,
       });
     }
+
+    const metas = token
+      ? await Promise.all(
+          pending.map((ch) => this.fetchChatMeta(token, ch.channelId)),
+        )
+      : pending.map(() => ({ memberCount: null, photoUrl: null }));
+
+    const result: PublicTelegramChannel[] = pending.map((ch, i) => ({
+      ...ch,
+      memberCount: metas[i]!.memberCount,
+      photoUrl: metas[i]!.photoUrl,
+      joinedThisWeek: null,
+    }));
+
+    await this.recordMemberSnapshots(result);
 
     channelsCache = { data: result, expires: Date.now() + CHANNELS_CACHE_TTL_MS };
     return result;
   }
 
-  async getTelegramChannelsResponse() {
+  async getTelegramChannelsResponse(): Promise<{ data: TelegramChannelsPayload }> {
     const channels = await this.getTelegramChannels();
+    const joinedThisWeek = await this.computeJoinedThisWeek(channels);
+    const botUsername = await this.resolveBotUsername();
     const totalMembers = channels.reduce(
       (sum, ch) => sum + (ch.memberCount ?? 0),
       0,
     );
-    return { data: { channels, totalMembers } };
+    return {
+      data: { channels, totalMembers, joinedThisWeek, botUsername },
+    };
   }
 
   async updateBranding(brandName: string) {

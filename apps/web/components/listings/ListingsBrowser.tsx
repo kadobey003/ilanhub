@@ -7,7 +7,9 @@ import type {
   BrowseTelegramChannel,
   PublicListingSummary,
 } from "@/lib/listings-types";
-import { CityChips } from "./CityChips";
+import { SavedListingsBar } from "@/components/listing/SavedListingsBar";
+import { CityGrid } from "./CityGrid";
+import { FeaturedListingsSection } from "./FeaturedListingsSection";
 import { JobListingCard } from "./JobListingCard";
 import { HorecaListingCard } from "@/components/horeca/HorecaListingCard";
 import { ListingsEmptyState } from "./ListingsEmptyState";
@@ -37,6 +39,7 @@ interface Props {
   citySlug?: string;
   cityName?: string;
   allHref: string;
+  horeca?: boolean;
 }
 
 function listingHaystack(l: PublicListingSummary): string {
@@ -63,9 +66,10 @@ export function ListingsBrowser({
   citySlug,
   cityName,
   allHref,
+  horeca: horecaProp,
 }: Props) {
   const router = useRouter();
-  const horeca = isHorecaProject(project);
+  const horeca = horecaProp ?? isHorecaProject(project);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [businessType, setBusinessType] = useState("");
@@ -97,6 +101,21 @@ export function ListingsBrowser({
 
     return rows;
   }, [listings, query, category, businessType, sort]);
+
+  const featuredIds = useMemo(
+    () =>
+      new Set(
+        listings
+          .filter((l) => l.isPinned || l.isFeatured)
+          .map((l) => l.id),
+      ),
+    [listings],
+  );
+
+  const regular = useMemo(
+    () => filtered.filter((l) => !featuredIds.has(l.id)),
+    [filtered, featuredIds],
+  );
 
   const activeFilters =
     (query ? 1 : 0) + (category ? 1 : 0) + (businessType ? 1 : 0);
@@ -149,10 +168,21 @@ export function ListingsBrowser({
           cities={cities}
           activeCity={citySlug}
           allHref={allHref}
+          isHoreca={horeca}
         />
+        <div className="mt-4">
+          <CityGrid
+            project={project}
+            cities={cities}
+            activeCity={citySlug}
+            allHref={allHref}
+            isHoreca={horeca}
+          />
+        </div>
       </section>
 
       <div className="mb-6">
+        {horeca && <SavedListingsBar project={project} />}
         <TelegramBrowseBanner
           channels={telegramChannels}
           botUsername={botUsername}
@@ -299,15 +329,26 @@ export function ListingsBrowser({
           </div>
         )
       ) : (
-        <div className="grid gap-4 pb-8 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
-          {filtered.map((listing) =>
-            horeca ? (
-              <HorecaListingCard key={listing.id} listing={listing} project={project} />
-            ) : (
-              <JobListingCard key={listing.id} listing={listing} project={project} />
-            ),
-          )}
-        </div>
+        <>
+          <FeaturedListingsSection
+            listings={filtered.filter((l) => featuredIds.has(l.id))}
+            project={project}
+            horeca={horeca}
+          />
+          <div className="grid gap-4 pb-8 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+            {regular.map((listing) =>
+              horeca ? (
+                <HorecaListingCard
+                  key={listing.id}
+                  listing={listing}
+                  project={project}
+                />
+              ) : (
+                <JobListingCard key={listing.id} listing={listing} project={project} />
+              ),
+            )}
+          </div>
+        </>
       )}
     </div>
   );

@@ -9,15 +9,24 @@ export interface PublicTelegramChannel {
   projectName: string;
   cities: string[];
   memberCount: number | null;
+  photoUrl: string | null;
+  joinedThisWeek: number | null;
 }
 
 export interface TelegramChannelsData {
   channels: PublicTelegramChannel[];
   totalMembers: number;
+  joinedThisWeek: number;
+  botUsername: string | null;
 }
 
 export async function fetchTelegramChannels(): Promise<TelegramChannelsData> {
-  const empty: TelegramChannelsData = { channels: [], totalMembers: 0 };
+  const empty: TelegramChannelsData = {
+    channels: [],
+    totalMembers: 0,
+    joinedThisWeek: 0,
+    botUsername: null,
+  };
   try {
     const res = await fetch(`${API_URL}/api/site/telegram-channels`, {
       next: { revalidate: 900 },

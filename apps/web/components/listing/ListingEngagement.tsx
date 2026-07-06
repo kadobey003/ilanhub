@@ -9,6 +9,7 @@ interface Props {
   listingId: string;
   projectId: string;
   initial: ListingEngagement;
+  isHoreca?: boolean;
 }
 
 function formatCommentDate(value: string): string {
@@ -28,7 +29,12 @@ function likeStorageKey(listingId: string): string {
   return `ilanhub:liked:${listingId}`;
 }
 
-export function ListingEngagement({ listingId, projectId, initial }: Props) {
+export function ListingEngagement({
+  listingId,
+  projectId,
+  initial,
+  isHoreca,
+}: Props) {
   const [views, setViews] = useState(initial.views);
   const [likes, setLikes] = useState(initial.likes);
   const [comments, setComments] = useState<ListingComment[]>(initial.comments);
@@ -108,6 +114,10 @@ export function ListingEngagement({ listingId, projectId, initial }: Props) {
     setLikes(initial.likes);
     setComments(initial.comments);
   }, [initial]);
+
+  const accentBtn = isHoreca
+    ? "rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-600 disabled:opacity-50"
+    : "rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:opacity-50";
 
   return (
     <section className="mt-6 space-y-5 border-t border-slate-100 pt-6">
@@ -197,7 +207,7 @@ export function ListingEngagement({ listingId, projectId, initial }: Props) {
           <button
             type="submit"
             disabled={submitting || !authorName.trim() || !body.trim()}
-            className="rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:opacity-50"
+            className={accentBtn}
           >
             {submitting ? "Надсилання..." : "Надіслати"}
           </button>

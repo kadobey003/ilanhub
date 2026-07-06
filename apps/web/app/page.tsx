@@ -11,7 +11,8 @@ import {
 import { fetchTelegramChannels } from "@/lib/site-api";
 
 export default async function HomePage() {
-  const { channels, totalMembers } = await fetchTelegramChannels();
+  const { channels, totalMembers, joinedThisWeek, botUsername } =
+    await fetchTelegramChannels();
 
   return (
     <div className="md:mx-auto md:max-w-6xl md:px-6">
@@ -21,6 +22,8 @@ export default async function HomePage() {
         <TelegramChannelsShowcase
           channels={channels}
           totalMembers={totalMembers}
+          joinedThisWeek={joinedThisWeek}
+          botUsername={botUsername}
         />
       </div>
 

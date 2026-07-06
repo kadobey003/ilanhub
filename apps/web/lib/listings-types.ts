@@ -35,6 +35,8 @@ export interface PublicListingSummary {
   firstSalary?: string | null;
   positionTitles?: string[];
   publishedAt?: string | null;
+  isPinned?: boolean;
+  isFeatured?: boolean;
 }
 
 export interface BrowseCategory {
