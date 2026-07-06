@@ -24,10 +24,13 @@ export function Header() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+    <header className="sticky top-0 z-50 border-b border-slate-200/60 bg-white/80 backdrop-blur-xl">
+      <div
+        className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6 sm:py-3"
+        style={{ paddingTop: "max(0.625rem, env(safe-area-inset-top))" }}
+      >
         <Link href={loggedIn ? "/account" : "/"} className="flex items-center">
-          <BrandLogo height={32} />
+          <BrandLogo height={28} />
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex">
@@ -67,9 +70,28 @@ export function Header() {
           )}
         </div>
 
+        <div className="flex items-center gap-2 md:hidden">
+          {loggedIn ? (
+            <Link
+              href="/account"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-brand/10 text-sm"
+              aria-label="Кабінет"
+            >
+              👤
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="rounded-lg px-3 py-1.5 text-xs font-semibold text-brand"
+            >
+              Увійти
+            </Link>
+          )}
+        </div>
+
         <button
           type="button"
-          className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 lg:hidden"
+          className="hidden h-10 w-10 items-center justify-center rounded-xl border border-slate-200 lg:flex"
           onClick={() => setOpen(!open)}
           aria-label="Меню"
         >

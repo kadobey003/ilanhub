@@ -58,6 +58,8 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    volumes:
+      - api_uploads:/app/uploads
     environment:
       DATABASE_URL: postgresql://ilanhub:secret@postgres:5432/ilanhub
       REDIS_URL: redis://redis:6379
@@ -210,3 +212,4 @@ volumes:
   postgres_data:
   redis_data:
   minio_data:
+  api_uploads:

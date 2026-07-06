@@ -13,6 +13,8 @@ services:
 
   api:
     restart: always
+    volumes:
+      - api_uploads:/app/uploads
     environment:
       NODE_ENV: production
     deploy:

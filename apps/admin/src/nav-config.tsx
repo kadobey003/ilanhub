@@ -12,6 +12,7 @@ import {
   IconRocket,
   IconTelegram,
   IconUsers,
+  IconTag,
 } from "./components/icons";
 
 export type NavItem = {
@@ -61,6 +62,7 @@ export const navGroups: NavGroup[] = [
   {
     title: "Система",
     items: [
+      { to: "/branding", label: "Брендинг", icon: <IconTag size={18} /> },
       { to: "/managers", label: "Менеджери", icon: <IconKey size={18} />, superOnly: true },
     ],
   },
@@ -76,6 +78,7 @@ export const pageTitles: Record<string, string> = {
   "/cities": "Міста",
   "/channels": "Канали",
   "/telegram": "Telegram",
+  "/branding": "Брендинг",
   "/publications": "Дистрибуція",
   "/payments": "Платежі",
   "/analytics": "Аналітика",

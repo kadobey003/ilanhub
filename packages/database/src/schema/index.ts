@@ -577,6 +577,15 @@ export const adminManagerProjects = pgTable(
   ],
 );
 
+export const siteBranding = pgTable("site_branding", {
+  id: integer("id").primaryKey().default(1),
+  brandName: varchar("brand_name", { length: 120 }).notNull().default("UAREKLAMHUB"),
+  logoUrl: text("logo_url"),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 export const dailyStats = pgTable(
   "daily_stats",
   {

@@ -16,6 +16,7 @@ import { Users } from "./pages/Users";
 import { Pricing } from "./pages/Pricing";
 import { Managers } from "./pages/Managers";
 import { Telegram } from "./pages/Telegram";
+import { Branding } from "./pages/Branding";
 import { Login } from "./pages/Login";
 import { Categories } from "./pages/Categories";
 
@@ -149,6 +150,7 @@ function AppRoutes() {
         <Route path="cities" element={<Cities />} />
         <Route path="channels" element={<Channels />} />
         <Route path="telegram" element={<Telegram />} />
+        <Route path="branding" element={<Branding />} />
         <Route path="publications" element={<Publications />} />
         <Route path="payments" element={<Payments />} />
         <Route path="analytics" element={<Analytics />} />

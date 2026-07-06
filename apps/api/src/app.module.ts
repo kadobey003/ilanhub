@@ -18,6 +18,7 @@ import { BotsModule } from "./bots/bots.module.js";
 import { RegionsModule } from "./regions/regions.module.js";
 import { AuthModule } from "./auth/auth.module.js";
 import { AccountModule } from "./account/account.module.js";
+import { SiteModule } from "./site/site.module.js";
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { AccountModule } from "./account/account.module.js";
     UsersModule,
     AuthModule,
     AccountModule,
+    SiteModule,
     ChannelsModule,
     WebhooksModule,
     AnalyticsModule,

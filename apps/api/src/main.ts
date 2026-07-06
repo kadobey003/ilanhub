@@ -17,6 +17,9 @@ async function bootstrap() {
   app.useStaticAssets(join(process.cwd(), "uploads", "listings"), {
     prefix: "/api/uploads/listings/",
   });
+  app.useStaticAssets(join(process.cwd(), "uploads", "branding"), {
+    prefix: "/api/uploads/branding/",
+  });
   app.useGlobalPipes(
     new ValidationPipe({ transform: true, whitelist: true }),
   );

@@ -25,7 +25,7 @@ const cards = [
     emoji: "🍽️",
     title: "Horeca",
     subtitle: "Ресторани та готелі",
-    description: "Окремий напрям: кухарі, бармени, офіціанти. Не плутайте з загальною роботою.",
+    description: "Окремий напрям: кухарі, бармени, офіціанти.",
     gradient: "from-amber-500 to-orange-600",
     cta: "Відкрити Horeca",
     badge: "Окремий vertical",
@@ -41,56 +41,84 @@ const cards = [
   },
 ];
 
+function CardContent({ card }: { card: (typeof cards)[number] }) {
+  return (
+    <>
+      <div
+        className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-[0.04] md:opacity-0 md:transition md:group-hover:opacity-[0.06]`}
+      />
+      <div className="relative flex h-full flex-col">
+        {card.badge && (
+          <span className="mb-2 inline-block w-fit rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">
+            {card.badge}
+          </span>
+        )}
+        <div className="flex items-start justify-between">
+          <span className="text-3xl sm:text-4xl">{card.emoji}</span>
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500 md:hidden">
+            →
+          </span>
+        </div>
+        <p className="mt-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          {card.subtitle}
+        </p>
+        <h3 className="mt-0.5 text-lg font-bold text-slate-900 sm:text-xl">{card.title}</h3>
+        <p className="mt-1.5 flex-1 text-xs leading-relaxed text-slate-600 sm:text-sm">
+          {card.description}
+        </p>
+        <span className="mt-3 hidden items-center gap-1 text-sm font-semibold text-brand transition-all group-hover:gap-2 sm:inline-flex">
+          {card.cta} →
+        </span>
+      </div>
+    </>
+  );
+}
+
 export function VerticalCards() {
   return (
-    <div className="grid gap-5 sm:grid-cols-2">
-      {cards.map((card) => (
-        <Link
-          key={card.href}
-          href={card.href}
-          className="group relative overflow-hidden rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-0.5"
-        >
-          <div
-            className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-0 transition group-hover:opacity-[0.03]`}
-          />
-          <div className="relative">
-            {card.badge && (
-              <span className="mb-3 inline-block rounded-full bg-amber-100 px-3 py-0.5 text-xs font-semibold text-amber-800">
-                {card.badge}
-              </span>
-            )}
-            <span className="text-4xl">{card.emoji}</span>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
-              {card.subtitle}
-            </p>
-            <h3 className="mt-1 text-xl font-bold text-slate-900">{card.title}</h3>
-            <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-              {card.description}
-            </p>
-            <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand group-hover:gap-2 transition-all">
-              {card.cta} →
-            </span>
-          </div>
-        </Link>
-      ))}
-    </div>
+    <>
+      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-hide snap-x-mandatory md:hidden">
+        {cards.map((card) => (
+          <Link
+            key={card.href}
+            href={card.href}
+            className="group relative w-[78vw] max-w-[300px] shrink-0 snap-start overflow-hidden rounded-2xl border border-slate-100/80 bg-white p-5 shadow-md shadow-slate-200/50 active:scale-[0.98] transition-transform"
+          >
+            <CardContent card={card} />
+          </Link>
+        ))}
+      </div>
+
+      <div className="hidden gap-5 md:grid md:grid-cols-2">
+        {cards.map((card) => (
+          <Link
+            key={card.href}
+            href={card.href}
+            className="group relative overflow-hidden rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-200/50"
+          >
+            <CardContent card={card} />
+          </Link>
+        ))}
+      </div>
+    </>
   );
 }
 
 export function StatsBar() {
   const stats = [
-    { value: "3", label: "Напрями" },
-    { value: "6+", label: "Міст" },
-    { value: "5", label: "Каналів" },
-    { value: "24/7", label: "Боти" },
+    { value: "3", label: "Напрями", icon: "📂" },
+    { value: "6+", label: "Міст", icon: "🏙️" },
+    { value: "5", label: "Каналів", icon: "📡" },
+    { value: "24/7", label: "Боти", icon: "🤖" },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm sm:grid-cols-4">
+    <div className="grid grid-cols-4 gap-2 rounded-2xl border border-slate-100/80 bg-white p-3 shadow-sm sm:gap-4 sm:p-6 md:grid-cols-4">
       {stats.map((s) => (
         <div key={s.label} className="text-center">
-          <p className="text-2xl font-bold text-brand sm:text-3xl">{s.value}</p>
-          <p className="mt-1 text-sm text-slate-500">{s.label}</p>
+          <span className="text-base sm:hidden">{s.icon}</span>
+          <p className="text-lg font-bold text-brand sm:text-3xl">{s.value}</p>
+          <p className="mt-0.5 text-[10px] text-slate-500 sm:text-sm">{s.label}</p>
         </div>
       ))}
     </div>
@@ -99,20 +127,24 @@ export function StatsBar() {
 
 export function CompareNote() {
   return (
-    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 sm:p-8">
-      <h3 className="font-bold text-amber-900 text-lg">
-        Horeca ≠ Загальна робота
-      </h3>
-      <p className="mt-2 text-amber-800/90 text-sm leading-relaxed sm:text-base">
-        <strong>Робота</strong> — усі сектори: офіс, IT, склад, будівництво.{" "}
-        <strong>Horeca</strong> — лише ресторани, кафе, бари та готелі. Окремі
-        категорії, канали та аудиторія.
-      </p>
-      <div className="mt-4 flex flex-wrap gap-3">
-        <Button href="/robota" variant="outline" size="sm">
-          Загальна робота
+    <div className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50 to-orange-50 p-5 sm:p-8">
+      <div className="flex items-start gap-3">
+        <span className="text-2xl">⚠️</span>
+        <div>
+          <h3 className="font-bold text-amber-900 text-base sm:text-lg">
+            Horeca ≠ Загальна робота
+          </h3>
+          <p className="mt-2 text-amber-800/90 text-xs leading-relaxed sm:text-base">
+            <strong>Робота</strong> — усі сектори.{" "}
+            <strong>Horeca</strong> — лише ресторани, кафе, бари та готелі.
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 flex gap-2">
+        <Button href="/robota" variant="outline" size="sm" className="flex-1 !rounded-xl">
+          Робота
         </Button>
-        <Button href="/horeca" size="sm" className="!bg-amber-500 hover:!bg-amber-600">
+        <Button href="/horeca" size="sm" className="flex-1 !rounded-xl !bg-amber-500 hover:!bg-amber-600">
           Horeca
         </Button>
       </div>

@@ -12,6 +12,7 @@ import {
 } from "@nestjs/common";
 import { AdminGuard } from "./admin.guard.js";
 import { AdminService } from "./admin.service.js";
+import { SiteService } from "../site/site.service.js";
 import { UserMessagingService } from "./user-messaging.service.js";
 import {
   AdminListingUpdateDto,
@@ -32,6 +33,8 @@ import {
   ProjectPricingDto,
   ProjectCreateDto,
   TelegramSettingsDto,
+  BrandingUpdateDto,
+  BrandingLogoUploadDto,
   UserBroadcastDto,
   UserMessageDto,
   VacancyTypeUpdateDto,
@@ -44,6 +47,7 @@ export class AdminController {
   constructor(
     private readonly adminService: AdminService,
     private readonly userMessaging: UserMessagingService,
+    private readonly siteService: SiteService,
   ) {}
 
   @Get("dashboard")
@@ -354,5 +358,20 @@ export class AdminController {
   @Post("settings/telegram/webhook")
   registerTelegramWebhook(@Body() body: { projectId: string }) {
     return this.adminService.registerTelegramWebhook(body.projectId);
+  }
+
+  @Get("settings/branding")
+  brandingSettings() {
+    return this.siteService.getBrandingResponse();
+  }
+
+  @Patch("settings/branding")
+  saveBrandingSettings(@Body() dto: BrandingUpdateDto) {
+    return this.siteService.updateBranding(dto.brandName);
+  }
+
+  @Post("settings/branding/logo")
+  uploadBrandingLogo(@Body() dto: BrandingLogoUploadDto) {
+    return this.siteService.uploadLogo(dto.dataUrl);
   }
 }

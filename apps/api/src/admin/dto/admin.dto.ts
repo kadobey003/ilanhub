@@ -365,6 +365,16 @@ export class TelegramSettingsDto {
   isActive?: boolean;
 }
 
+export class BrandingUpdateDto {
+  @IsString()
+  brandName!: string;
+}
+
+export class BrandingLogoUploadDto {
+  @IsString()
+  dataUrl!: string;
+}
+
 export class VacancyTypeUpdateDto {
   @IsOptional()
   @IsString()

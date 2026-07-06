@@ -163,6 +163,17 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ projectId }),
     }),
+  branding: () => apiClient<{ data: BrandingSettings }>("/admin/settings/branding"),
+  saveBranding: (body: { brandName: string }) =>
+    apiClient<{ data: BrandingSettings }>("/admin/settings/branding", {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  uploadBrandingLogo: (dataUrl: string) =>
+    apiClient<{ data: BrandingSettings }>("/admin/settings/branding/logo", {
+      method: "POST",
+      body: JSON.stringify({ dataUrl }),
+    }),
 };
 
 export interface ListingRow {
@@ -515,4 +526,9 @@ export interface TelegramSettingsForm {
   botToken?: string;
   webhookUrl?: string;
   isActive?: boolean;
+}
+
+export interface BrandingSettings {
+  brandName: string;
+  logoUrl: string;
 }
