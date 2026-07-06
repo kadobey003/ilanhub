@@ -394,6 +394,44 @@ export class TelegramSettingsDto {
   @IsOptional()
   @IsBoolean()
   showChannels?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  pinPrice?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  dailyDuplicatePrice?: number;
+
+  @IsOptional()
+  @IsString()
+  adminChatId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  adminGroupEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  notifySubmittedPayment?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  notifySubmittedModeration?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  notifyPaymentReceived?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  notifyResubmitted?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  notifyModerationActions?: boolean;
 }
 
 export class BrandingUpdateDto {

@@ -527,6 +527,15 @@ export interface TelegramSettings {
   showSupport: boolean;
   showSite: boolean;
   showChannels: boolean;
+  pinPrice: number;
+  dailyDuplicatePrice: number;
+  adminChatId: string;
+  adminGroupEnabled: boolean;
+  notifySubmittedPayment: boolean;
+  notifySubmittedModeration: boolean;
+  notifyPaymentReceived: boolean;
+  notifyResubmitted: boolean;
+  notifyModerationActions: boolean;
 }
 
 export interface TelegramSettingsForm {
@@ -542,6 +551,15 @@ export interface TelegramSettingsForm {
   showSupport?: boolean;
   showSite?: boolean;
   showChannels?: boolean;
+  pinPrice?: number;
+  dailyDuplicatePrice?: number;
+  adminChatId?: string;
+  adminGroupEnabled?: boolean;
+  notifySubmittedPayment?: boolean;
+  notifySubmittedModeration?: boolean;
+  notifyPaymentReceived?: boolean;
+  notifyResubmitted?: boolean;
+  notifyModerationActions?: boolean;
 }
 
 export interface BrandingSettings {

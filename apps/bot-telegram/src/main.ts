@@ -4,7 +4,9 @@ loadMonorepoEnv();
 import { Bot, webhookCallback } from "grammy";
 import { createServer } from "node:http";
 import { registerHandlers } from "./handlers/index.js";
+import { invalidateAdminChatCache } from "./admin-handlers.js";
 import { invalidateBotMenuCache } from "./bot-menu.js";
+import { invalidateAddonPriceCache } from "./horeca-pricing.js";
 
 const PORT = Number(process.env.PORT ?? 3001);
 const API_URL = process.env.API_URL ?? "http://localhost:3010";
@@ -167,6 +169,8 @@ const server = createServer(async (req, res) => {
     }
     try {
       invalidateBotMenuCache();
+      invalidateAdminChatCache();
+      invalidateAddonPriceCache();
       const result = await reloadToken();
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(result));

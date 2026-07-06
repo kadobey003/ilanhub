@@ -25,7 +25,12 @@ import {
 import { DRIZZLE, PUBLISH_LISTING_QUEUE } from "../common/constants.js";
 import type { PublishListingJob } from "../queue/queue.module.js";
 import { slugify, telegramPublicUrl } from "@ilanhub/shared";
-import { hashPassword } from "./password.util.js";
+import {
+  adminGroupToApi,
+  buildAdminGroupConfig,
+  parseAdminGroup,
+  type AdminGroupConfig,
+} from "./admin-telegram-group-config.util.js";
 import {
   deleteTelegramMessage,
   parseTelegramExternalId,
@@ -747,7 +752,55 @@ export class AdminService {
       .where(eq(projectAddons.id, id))
       .returning();
     if (!row) throw new NotFoundException("Addon not found");
+    await this.notifyTelegramBotReload();
     return { data: row };
+  }
+
+  private async getHorecaAddonPrices(projectId: string) {
+    await this.seedProjectAddons(projectId);
+    const rows = await this.db
+      .select({ slug: projectAddons.slug, price: projectAddons.price })
+      .from(projectAddons)
+      .where(eq(projectAddons.projectId, projectId));
+    return {
+      pinPrice:
+        rows.find((r) => r.slug === "pin")?.price ??
+        Number(process.env.HORECA_PIN_PRICE ?? 500),
+      dailyDuplicatePrice:
+        rows.find((r) => r.slug === "daily_duplicate")?.price ??
+        Number(process.env.HORECA_DAILY_DUPLICATE_PRICE ?? 150),
+    };
+  }
+
+  private async saveHorecaAddonPrices(
+    projectId: string,
+    pinPrice?: number,
+    dailyDuplicatePrice?: number,
+  ) {
+    if (pinPrice === undefined && dailyDuplicatePrice === undefined) return;
+    await this.seedProjectAddons(projectId);
+    if (pinPrice !== undefined) {
+      await this.db
+        .update(projectAddons)
+        .set({ price: pinPrice, updatedAt: new Date() })
+        .where(
+          and(
+            eq(projectAddons.projectId, projectId),
+            eq(projectAddons.slug, "pin"),
+          ),
+        );
+    }
+    if (dailyDuplicatePrice !== undefined) {
+      await this.db
+        .update(projectAddons)
+        .set({ price: dailyDuplicatePrice, updatedAt: new Date() })
+        .where(
+          and(
+            eq(projectAddons.projectId, projectId),
+            eq(projectAddons.slug, "daily_duplicate"),
+          ),
+        );
+    }
   }
 
   private async seedVacancyPricing(projectId: string) {
@@ -2220,6 +2273,8 @@ export class AdminService {
     const input = rows.find((r) => r.purpose === "listing_input");
     const inputCfg = (input?.config ?? {}) as Record<string, unknown>;
     const menu = this.parseBotMenu(inputCfg);
+    const addonPrices = await this.getHorecaAddonPrices(projectId);
+    const adminGroup = parseAdminGroup(inputCfg);
 
     return {
       data: {
@@ -2233,8 +2288,35 @@ export class AdminService {
         botUsername: inputCfg.botUsername ? String(inputCfg.botUsername) : null,
         inputChannelId: input?.id ?? null,
         ...menu,
+        ...addonPrices,
+        ...adminGroupToApi(adminGroup),
       },
     };
+  }
+
+  async getAdminGroupForProject(projectId: string): Promise<AdminGroupConfig> {
+    const [input] = await this.db
+      .select()
+      .from(channelConfigs)
+      .where(
+        and(
+          eq(channelConfigs.projectId, projectId),
+          eq(channelConfigs.channel, "telegram"),
+          eq(channelConfigs.purpose, "listing_input"),
+        ),
+      )
+      .limit(1);
+
+    const cfg = (input?.config ?? {}) as Record<string, unknown>;
+    return parseAdminGroup(cfg);
+  }
+
+  async getActiveAdminGroup(): Promise<AdminGroupConfig> {
+    const bot = await this.getActiveTelegramBotConfig();
+    if (bot?.projectId) {
+      return this.getAdminGroupForProject(bot.projectId);
+    }
+    return parseAdminGroup({});
   }
 
   async saveTelegramSettings(dto: TelegramSettingsDto) {
@@ -2263,7 +2345,8 @@ export class AdminService {
 
     const prevCfg = (existing?.config ?? {}) as Record<string, unknown>;
     const menu = this.buildBotMenuConfig(prevCfg, dto);
-    let nextCfg: Record<string, unknown> = { ...prevCfg, menu };
+    const adminGroup = buildAdminGroupConfig(prevCfg, dto);
+    let nextCfg: Record<string, unknown> = { ...prevCfg, menu, adminGroup };
 
     if (dto.botToken) {
       const me = await this.telegramGetMe(dto.botToken);
@@ -2288,11 +2371,21 @@ export class AdminService {
       dto.showSite !== undefined ||
       dto.showChannels !== undefined;
 
+    const hasAdminGroupUpdate =
+      dto.adminChatId !== undefined ||
+      dto.adminGroupEnabled !== undefined ||
+      dto.notifySubmittedPayment !== undefined ||
+      dto.notifySubmittedModeration !== undefined ||
+      dto.notifyPaymentReceived !== undefined ||
+      dto.notifyResubmitted !== undefined ||
+      dto.notifyModerationActions !== undefined;
+
     if (
       dto.botToken ||
       dto.webhookUrl !== undefined ||
       dto.isActive !== undefined ||
       hasMenuUpdate ||
+      hasAdminGroupUpdate ||
       existing
     ) {
       await this.upsertTelegramChannel(
@@ -2302,6 +2395,12 @@ export class AdminService {
         existing ? (dto.isActive ?? existing.isActive) : isActive,
       );
     }
+
+    await this.saveHorecaAddonPrices(
+      dto.projectId,
+      dto.pinPrice,
+      dto.dailyDuplicatePrice,
+    );
 
     await this.notifyTelegramBotReload();
     return this.getTelegramSettings(dto.projectId);

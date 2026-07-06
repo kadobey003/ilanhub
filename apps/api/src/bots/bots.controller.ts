@@ -50,11 +50,13 @@ export class BotsController {
   async telegramConfig(@Headers("x-bot-secret") secret: string) {
     this.checkSecret(secret);
     const config = await this.adminService.getActiveTelegramBotConfig();
+    const adminGroup = await this.adminService.getActiveAdminGroup();
     if (config?.botToken) {
       return {
         botToken: config.botToken,
         projectId: config.projectId,
         botUsername: config.botUsername,
+        adminChatId: adminGroup.enabled ? adminGroup.chatId : null,
         paymentProviderToken:
           process.env.TELEGRAM_PAYMENT_PROVIDER_TOKEN?.trim() || null,
       };
@@ -64,6 +66,7 @@ export class BotsController {
       botToken: token || null,
       projectId: null,
       botUsername: null,
+      adminChatId: adminGroup.enabled ? adminGroup.chatId : null,
       paymentProviderToken:
         process.env.TELEGRAM_PAYMENT_PROVIDER_TOKEN?.trim() || null,
     };

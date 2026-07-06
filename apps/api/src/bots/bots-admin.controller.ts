@@ -26,8 +26,8 @@ export class BotsAdminController {
     if (secret !== expected) throw new UnauthorizedException("Invalid bot secret");
   }
 
-  private assertAuth(body: AdminBotActionBody) {
-    if (!this.adminBot.isAuthorizedChat(body.chatId, body.userId)) {
+  private async assertAuth(body: AdminBotActionBody) {
+    if (!(await this.adminBot.isAuthorizedChat(body.chatId, body.userId))) {
       throw new UnauthorizedException("Not an admin chat");
     }
   }
@@ -38,7 +38,7 @@ export class BotsAdminController {
     @Body() body: AdminBotActionBody,
   ) {
     this.checkSecret(secret);
-    this.assertAuth(body);
+    await this.assertAuth(body);
 
     const args = body.args ?? [];
     const ref = body.listingRef ?? args[0] ?? "";

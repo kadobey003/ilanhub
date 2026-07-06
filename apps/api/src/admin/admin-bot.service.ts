@@ -33,8 +33,8 @@ export class AdminBotService {
     private readonly adminNotify: AdminTelegramNotifyService,
   ) {}
 
-  isAuthorizedChat(chatId: string, userId: string): boolean {
-    const groupId = this.adminNotify.adminChatId();
+  async isAuthorizedChat(chatId: string, userId: string): Promise<boolean> {
+    const groupId = await this.adminNotify.adminChatId();
     if (groupId && chatId === groupId) return true;
 
     const allow = (process.env.TELEGRAM_ADMIN_USER_IDS ?? "")
@@ -240,6 +240,7 @@ export class AdminBotService {
     const sid = shortListingId(id);
     void this.adminNotify.notifyAdminText(
       `✅ <b>Схвалено</b> <code>${sid}</code>${actorName ? ` — ${actorName}` : ""}`,
+      { projectId: listing.projectId },
     );
     return `✅ Оголошення <code>${sid}</code> схвалено та поставлено в чергу публікації.`;
   }
@@ -272,6 +273,7 @@ export class AdminBotService {
     const sid = shortListingId(id);
     void this.adminNotify.notifyAdminText(
       `❌ <b>Відхилено</b> <code>${sid}</code>${actorName ? ` — ${actorName}` : ""}`,
+      { projectId: listing.projectId },
     );
     return `❌ Оголошення <code>${sid}</code> відхилено.`;
   }

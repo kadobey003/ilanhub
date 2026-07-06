@@ -18,6 +18,15 @@ export function Telegram() {
   const [showSupport, setShowSupport] = useState(true);
   const [showSite, setShowSite] = useState(true);
   const [showChannels, setShowChannels] = useState(true);
+  const [pinPrice, setPinPrice] = useState(500);
+  const [dailyDuplicatePrice, setDailyDuplicatePrice] = useState(150);
+  const [adminChatId, setAdminChatId] = useState("");
+  const [adminGroupEnabled, setAdminGroupEnabled] = useState(true);
+  const [notifySubmittedPayment, setNotifySubmittedPayment] = useState(true);
+  const [notifySubmittedModeration, setNotifySubmittedModeration] = useState(true);
+  const [notifyPaymentReceived, setNotifyPaymentReceived] = useState(true);
+  const [notifyResubmitted, setNotifyResubmitted] = useState(true);
+  const [notifyModerationActions, setNotifyModerationActions] = useState(true);
   const [saving, setSaving] = useState(false);
   const [webhookLoading, setWebhookLoading] = useState(false);
   const [msg, setMsg] = useState("");
@@ -36,6 +45,15 @@ export function Telegram() {
     setShowSupport(data.showSupport);
     setShowSite(data.showSite);
     setShowChannels(data.showChannels);
+    setPinPrice(data.pinPrice);
+    setDailyDuplicatePrice(data.dailyDuplicatePrice);
+    setAdminChatId(data.adminChatId);
+    setAdminGroupEnabled(data.adminGroupEnabled);
+    setNotifySubmittedPayment(data.notifySubmittedPayment);
+    setNotifySubmittedModeration(data.notifySubmittedModeration);
+    setNotifyPaymentReceived(data.notifyPaymentReceived);
+    setNotifyResubmitted(data.notifyResubmitted);
+    setNotifyModerationActions(data.notifyModerationActions);
   };
 
   useEffect(() => {
@@ -81,6 +99,15 @@ export function Telegram() {
         showSupport,
         showSite,
         showChannels,
+        pinPrice,
+        dailyDuplicatePrice,
+        adminChatId,
+        adminGroupEnabled,
+        notifySubmittedPayment,
+        notifySubmittedModeration,
+        notifyPaymentReceived,
+        notifyResubmitted,
+        notifyModerationActions,
       });
       applySettings(r.data);
       setMsg("Збережено. Бот оновлено з панелі.");
@@ -192,6 +219,112 @@ export function Telegram() {
             />
             Активний
           </label>
+
+          <hr style={{ margin: "1.5rem 0", border: "none", borderTop: "1px solid var(--border)" }} />
+
+          <h3 style={{ margin: "0 0 0.75rem", fontSize: "1rem" }}>Додаткові послуги в боті</h3>
+          <p className="hint">
+            Ціни для закріплення та щоденного дублювання під час створення оголошення.
+            Дублювання — за одну вакансію (× кількість вакансій).
+          </p>
+          <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+            <div>
+              <label className="label-sm">📌 Закріплення (₴)</label>
+              <input
+                className="input"
+                type="number"
+                min={0}
+                value={pinPrice}
+                onChange={(e) => setPinPrice(Number(e.target.value))}
+              />
+            </div>
+            <div>
+              <label className="label-sm">🔁 Дублювання / вакансія (₴)</label>
+              <input
+                className="input"
+                type="number"
+                min={0}
+                value={dailyDuplicatePrice}
+                onChange={(e) => setDailyDuplicatePrice(Number(e.target.value))}
+              />
+            </div>
+          </div>
+
+          <hr style={{ margin: "1.5rem 0", border: "none", borderTop: "1px solid var(--border)" }} />
+
+          <h3 style={{ margin: "0 0 0.75rem", fontSize: "1rem" }}>Адмін-група</h3>
+          <p className="hint">
+            Telegram-група для сповіщень і команд модерації (/onayla, /reddet,
+            /bekleyen, /ilan, /odeme, /stat). Бот має бути учасником групи.
+          </p>
+
+          <label className="label-sm">Chat ID групи</label>
+          <input
+            className="input"
+            placeholder="-5483319216"
+            value={adminChatId}
+            onChange={(e) => setAdminChatId(e.target.value)}
+          />
+
+          <label className="check-label" style={{ marginTop: "0.75rem" }}>
+            <input
+              type="checkbox"
+              checked={adminGroupEnabled}
+              onChange={(e) => setAdminGroupEnabled(e.target.checked)}
+            />
+            Сповіщення в групу увімкнено
+          </label>
+
+          <p className="label-sm" style={{ marginTop: "1rem", marginBottom: "0.5rem" }}>
+            Які сповіщення надсилати
+          </p>
+          <div style={{ display: "grid", gap: "0.5rem" }}>
+            <label className="check-label">
+              <input
+                type="checkbox"
+                checked={notifySubmittedModeration}
+                onChange={(e) => setNotifySubmittedModeration(e.target.checked)}
+                disabled={!adminGroupEnabled}
+              />
+              Нове оголошення — на модерацію
+            </label>
+            <label className="check-label">
+              <input
+                type="checkbox"
+                checked={notifySubmittedPayment}
+                onChange={(e) => setNotifySubmittedPayment(e.target.checked)}
+                disabled={!adminGroupEnabled}
+              />
+              Нове оголошення — очікує оплати
+            </label>
+            <label className="check-label">
+              <input
+                type="checkbox"
+                checked={notifyPaymentReceived}
+                onChange={(e) => setNotifyPaymentReceived(e.target.checked)}
+                disabled={!adminGroupEnabled}
+              />
+              Оплату отримано
+            </label>
+            <label className="check-label">
+              <input
+                type="checkbox"
+                checked={notifyResubmitted}
+                onChange={(e) => setNotifyResubmitted(e.target.checked)}
+                disabled={!adminGroupEnabled}
+              />
+              Повторна модерація
+            </label>
+            <label className="check-label">
+              <input
+                type="checkbox"
+                checked={notifyModerationActions}
+                onChange={(e) => setNotifyModerationActions(e.target.checked)}
+                disabled={!adminGroupEnabled}
+              />
+              Підтвердження схвалення / відхилення
+            </label>
+          </div>
 
           <hr style={{ margin: "1.5rem 0", border: "none", borderTop: "1px solid var(--border)" }} />
 

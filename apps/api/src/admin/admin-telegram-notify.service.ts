@@ -9,6 +9,12 @@ import {
   type Database,
 } from "@ilanhub/database";
 import { DRIZZLE } from "../common/constants.js";
+import { AdminService } from "./admin.service.js";
+import {
+  isListingEventEnabled,
+  isModerationActionsEnabled,
+  type AdminGroupConfig,
+} from "./admin-telegram-group-config.util.js";
 import { UserMessagingService } from "./user-messaging.service.js";
 import {
   adminListingInlineKeyboard,
@@ -23,22 +29,29 @@ export class AdminTelegramNotifyService {
 
   constructor(
     @Inject(DRIZZLE) private readonly db: Database,
+    private readonly adminService: AdminService,
     private readonly userMessaging: UserMessagingService,
   ) {}
 
-  adminChatId(): string | null {
-    const id = process.env.TELEGRAM_ADMIN_CHAT_ID?.trim();
-    return id || null;
+  async adminChatId(projectId?: string): Promise<string | null> {
+    const group = projectId
+      ? await this.adminService.getAdminGroupForProject(projectId)
+      : await this.adminService.getActiveAdminGroup();
+    if (!group.enabled || !group.chatId) return null;
+    return group.chatId;
   }
 
-  isEnabled(): boolean {
-    return Boolean(this.adminChatId());
+  async isEnabled(projectId?: string): Promise<boolean> {
+    return Boolean(await this.adminChatId(projectId));
   }
 
-  private async loadSnapshot(listingId: string): Promise<AdminListingSnapshot | null> {
+  private async loadSnapshot(
+    listingId: string,
+  ): Promise<(AdminListingSnapshot & { projectId: string }) | null> {
     const [row] = await this.db
       .select({
         listing: listings,
+        projectId: listings.projectId,
         projectName: projects.name,
         cityName: cities.name,
         userName: users.name,
@@ -72,6 +85,7 @@ export class AdminTelegramNotifyService {
 
     return {
       id: row.listing.id,
+      projectId: row.projectId,
       title: row.listing.title,
       status: row.listing.status,
       price: row.listing.price,
@@ -91,20 +105,24 @@ export class AdminTelegramNotifyService {
     listingId: string,
     event: AdminListingEvent,
   ): Promise<void> {
-    const chatId = this.adminChatId();
-    if (!chatId) return;
-
     try {
       const snapshot = await this.loadSnapshot(listingId);
       if (!snapshot) return;
 
+      const group = await this.adminService.getAdminGroupForProject(
+        snapshot.projectId,
+      );
+      if (!isListingEventEnabled(group, event)) return;
+
+      const chatId = group.enabled ? group.chatId : null;
+      if (!chatId) return;
+
       const text = buildAdminListingNotifyMessage(event, snapshot);
       const markup =
-        snapshot.status === "pending_moderation"
+        snapshot.status === "pending_moderation" ||
+        snapshot.status === "pending_payment"
           ? adminListingInlineKeyboard(listingId)
-          : snapshot.status === "pending_payment"
-            ? adminListingInlineKeyboard(listingId)
-            : undefined;
+          : undefined;
 
       const result = await this.userMessaging.sendTelegram(chatId, text, {
         parseMode: "HTML",
@@ -122,8 +140,16 @@ export class AdminTelegramNotifyService {
     }
   }
 
-  async notifyAdminText(text: string): Promise<void> {
-    const chatId = this.adminChatId();
+  async notifyAdminText(
+    text: string,
+    options?: { projectId?: string },
+  ): Promise<void> {
+    const group: AdminGroupConfig = options?.projectId
+      ? await this.adminService.getAdminGroupForProject(options.projectId)
+      : await this.adminService.getActiveAdminGroup();
+    if (!isModerationActionsEnabled(group)) return;
+
+    const chatId = group.chatId;
     if (!chatId) return;
     await this.userMessaging.sendTelegram(chatId, text, { parseMode: "HTML" });
   }

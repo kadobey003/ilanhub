@@ -96,6 +96,7 @@ export const api = {
       botToken: string | null;
       projectId: string | null;
       botUsername: string | null;
+      adminChatId: string | null;
       paymentProviderToken: string | null;
     }>("/api/bots/telegram/config"),
   getTelegramMenu: () =>

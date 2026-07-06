@@ -1,13 +1,35 @@
 import type { Bot, Context } from "grammy";
 import { api } from "./api.js";
 
-const ADMIN_CHAT_ID = () =>
-  process.env.TELEGRAM_ADMIN_CHAT_ID?.trim() ?? "";
+let cachedAdminChatId: string | null = null;
+let cacheLoadedAt = 0;
+const CACHE_TTL_MS = 60_000;
 
-function isAdminContext(ctx: Context): boolean {
+export function invalidateAdminChatCache(): void {
+  cachedAdminChatId = null;
+  cacheLoadedAt = 0;
+}
+
+async function resolveAdminChatId(): Promise<string> {
+  if (cachedAdminChatId && Date.now() - cacheLoadedAt < CACHE_TTL_MS) {
+    return cachedAdminChatId;
+  }
+
+  const envId = process.env.TELEGRAM_ADMIN_CHAT_ID?.trim() ?? "";
+  try {
+    const cfg = await api.getTelegramConfig();
+    cachedAdminChatId = cfg.adminChatId?.trim() || envId;
+  } catch {
+    cachedAdminChatId = envId;
+  }
+  cacheLoadedAt = Date.now();
+  return cachedAdminChatId ?? "";
+}
+
+async function isAdminContext(ctx: Context): Promise<boolean> {
   const chatId = String(ctx.chat?.id ?? "");
   const userId = String(ctx.from?.id ?? "");
-  const groupId = ADMIN_CHAT_ID();
+  const groupId = await resolveAdminChatId();
   if (groupId && chatId === groupId) return true;
 
   const allow = (process.env.TELEGRAM_ADMIN_USER_IDS ?? "")
@@ -22,7 +44,7 @@ async function runAdminAction(
   action: string,
   args: string[] = [],
 ): Promise<void> {
-  if (!isAdminContext(ctx)) return;
+  if (!(await isAdminContext(ctx))) return;
 
   try {
     const { message } = await api.adminBotAction({
@@ -66,14 +88,14 @@ export function registerAdminHandlers(bot: Bot): void {
 
   for (const cmd of adminCommands) {
     bot.command(cmd, async (ctx) => {
-      if (!isAdminContext(ctx)) return;
+      if (!(await isAdminContext(ctx))) return;
       const args = parseArgs(ctx);
       await runAdminAction(ctx, cmd, args);
     });
   }
 
   bot.callbackQuery(/^adm:/, async (ctx) => {
-    if (!isAdminContext(ctx)) {
+    if (!(await isAdminContext(ctx))) {
       await ctx.answerCallbackQuery({ text: "Немає доступу", show_alert: true });
       return;
     }
