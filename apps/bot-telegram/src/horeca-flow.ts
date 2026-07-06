@@ -29,6 +29,7 @@ import {
   vacancyCountKeyboard,
   yesNoKeyboard,
 } from "./keyboards.js";
+import { replyOrEditText } from "./messaging.js";
 import { createSession, getSession, saveSession } from "./session.js";
 
 const HORECA_SLUG = "horeca";
@@ -191,20 +192,25 @@ export async function startNewHorecaListing(
   ctx: Context,
   session: BotSession,
 ): Promise<void> {
-  const projectId = await resolveHorecaProjectId(session);
-  if (!projectId) {
-    await ctx.reply(i18n.bot.error);
-    return;
-  }
+  try {
+    const projectId = await resolveHorecaProjectId(session);
+    if (!projectId) {
+      await ctx.reply(i18n.bot.error);
+      return;
+    }
 
-  const { data: categories } = await api.getCategories(projectId);
-  const categoryId = resolveDefaultHorecaCategoryId(categories);
-  if (!categoryId) {
-    await ctx.reply(i18n.bot.error);
-    return;
-  }
+    const { data: categories } = await api.getCategories(projectId);
+    const categoryId = resolveDefaultHorecaCategoryId(categories);
+    if (!categoryId) {
+      await ctx.reply(i18n.bot.error);
+      return;
+    }
 
-  await startHorecaFlow(ctx, session, projectId, categoryId);
+    await startHorecaFlow(ctx, session, projectId, categoryId);
+  } catch (err) {
+    console.error("startNewHorecaListing failed:", err);
+    await ctx.reply(i18n.bot.error);
+  }
 }
 
 export async function startHorecaFlow(
@@ -230,12 +236,7 @@ export async function startHorecaFlow(
   const { data: cities } = await api.getCities(projectId);
   const text = `${i18n.bot.horeca.intro}\n\n${i18n.bot.horeca.selectCity}`;
   const markup = cityKeyboard(cities);
-  const msg = ctx.callbackQuery?.message;
-  if (msg) {
-    await ctx.editMessageText(text, { reply_markup: markup });
-  } else {
-    await ctx.reply(text, { reply_markup: markup });
-  }
+  await replyOrEditText(ctx, text, { reply_markup: markup });
 }
 
 export async function handleHorecaCity(

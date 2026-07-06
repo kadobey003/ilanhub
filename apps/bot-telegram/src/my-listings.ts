@@ -3,6 +3,7 @@ import { i18n } from "@ilanhub/i18n";
 import type { ApiListing } from "@ilanhub/shared";
 import { formatAmountUah, formatHorecaPostHtml, parseStoredPosition } from "@ilanhub/shared";
 import { api } from "./api.js";
+import { replyOrEditText } from "./messaging.js";
 import { listingActionsKeyboard, listingPreviewKeyboard, myListingsKeyboard, paymentPendingKeyboard } from "./keyboards.js";
 import { parseDescriptionMeta, startEditExistingListing } from "./horeca-flow.js";
 import { sendListingPaymentInvoice } from "./payments.js";
@@ -106,12 +107,7 @@ export async function showMyListingsMenu(
 
   const text = `${i18n.bot.myListings}\n\n${i18n.bot.myListingsChoose}`;
   const markup = myListingsKeyboard(data);
-
-  if (ctx.callbackQuery?.message) {
-    await ctx.editMessageText(text, { reply_markup: markup });
-  } else {
-    await ctx.reply(text, { reply_markup: markup });
-  }
+  await replyOrEditText(ctx, text, { reply_markup: markup });
 }
 
 export async function showMyListingDetail(

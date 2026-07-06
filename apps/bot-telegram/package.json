@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "build": "tsc",
-    "start": "node dist/main.js"
+    "start": "node dist/main.js",
+    "test:messaging": "node scripts/test-messaging.mjs"
   },
   "dependencies": {
     "@ilanhub/i18n": "workspace:*",

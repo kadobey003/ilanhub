@@ -129,9 +129,14 @@ async function handleAction(ctx: Context): Promise<void> {
   const userId = String(ctx.from?.id ?? "");
 
   if (action === "new") {
-    const session = createSession(userId, CHANNEL);
-    await saveSession(session);
-    await startNewHorecaListing(ctx, session);
+    try {
+      const session = createSession(userId, CHANNEL);
+      await saveSession(session);
+      await startNewHorecaListing(ctx, session);
+    } catch (err) {
+      console.error("action:new failed:", err);
+      await ctx.reply(i18n.bot.error);
+    }
     return;
   }
   if (action === "cancel") {
