@@ -8,6 +8,7 @@ import {
   normalizeExternalHref,
   resolveTelegramChannelUrl,
   telegramBotUrl,
+  telegramPublicUrl,
 } from "@ilanhub/shared";
 import type { PublicSocialChannel, SocialBots, SocialChannelType } from "@/lib/site-api";
 import { getProjectMeta } from "@/lib/project-meta";
@@ -33,17 +34,19 @@ const PROJECT_ACCENT: Record<string, string> = {
 };
 
 function resolveSocialHref(item: PublicSocialChannel): string {
-  if (item.channel === "telegram") {
-    const handle = item.handle?.replace(/^@/, "") || undefined;
-    const href =
-      resolveTelegramChannelUrl({
-        url: item.url,
-        username: handle,
-        channelId: item.channelId ?? handle,
-      }) ?? item.url;
-    return normalizeExternalHref(href);
-  }
-  return normalizeExternalHref(item.url);
+  const normalized = normalizeExternalHref(item.url);
+  if (item.channel !== "telegram") return normalized;
+
+  const direct = telegramPublicUrl(normalized);
+  if (direct) return direct;
+
+  const handle = item.handle?.replace(/^@/, "") || undefined;
+  return (
+    resolveTelegramChannelUrl({
+      username: handle,
+      channelId: item.channelId ?? undefined,
+    }) ?? normalized
+  );
 }
 
 function fmtMembers(n: number | null): string {

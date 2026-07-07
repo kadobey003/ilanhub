@@ -517,7 +517,7 @@ export class SiteService {
       const tg = ch.channel === "telegram" ? telegramById.get(ch.id) : null;
       const telegramChannelId =
         ch.channel === "telegram"
-          ? (tg?.channelId ?? String(cfg.channelId ?? cfg.username ?? "").trim() || null)
+          ? (tg?.channelId ?? (String(cfg.channelId ?? cfg.username ?? "").trim() || null))
           : null;
       const item: PublicSocialChannel = {
         id: ch.id,

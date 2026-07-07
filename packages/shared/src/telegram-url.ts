@@ -33,7 +33,7 @@ export function telegramPublicUrl(channelId: string): string | null {
     const digits = raw.replace(/^-100/, "").replace(/^-/, "");
     return digits ? `https://t.me/c/${digits}` : null;
   }
-  if (/^[a-zA-Z0-9_]{4,}$/.test(raw)) return `https://t.me/${raw}`;
+  if (/^[a-zA-Z][a-zA-Z0-9_]{4,31}$/.test(raw)) return `https://t.me/${raw}`;
   return null;
 }
 

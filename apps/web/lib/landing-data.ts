@@ -43,8 +43,6 @@ export async function getLandingData(): Promise<LandingData> {
             cities: ch.cities,
             memberCount: ch.memberCount,
             photoUrl: ch.photoUrl,
-            channelId: ch.channelId,
-            username: ch.username ?? handle,
           };
         });
 
