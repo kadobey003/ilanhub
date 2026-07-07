@@ -189,7 +189,7 @@ export function TelegramChannelsShowcase({
   ));
 
   return (
-    <section className="relative overflow-hidden rounded-none bg-gradient-to-br from-[#229ED9] via-[#1a8bc4] to-[#0d5f8a] px-4 py-6 sm:rounded-2xl sm:px-6 sm:py-7 md:rounded-3xl md:py-9">
+    <section id="telegram" className="relative overflow-hidden rounded-none bg-gradient-to-br from-[#229ED9] via-[#1a8bc4] to-[#0d5f8a] px-4 py-6 sm:rounded-2xl sm:px-6 sm:py-7 md:rounded-3xl md:py-9">
       <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.06]" />
       <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-3xl animate-float" />
       <div className="absolute -bottom-20 -left-12 h-64 w-64 rounded-full bg-cyan-300/15 blur-3xl" />
@@ -221,8 +221,8 @@ export function TelegramChannelsShowcase({
               Приєднуйтесь до наших каналів
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-sky-100/90 sm:text-base">
-              Вакансії, Horeca та авто — прямо у Telegram. Оберіть своє місто
-              та підписуйтесь за один клік.
+              Вакансії, Horeca та авто — у Telegram, Viber, WhatsApp, Instagram та на
+              сайті. Оберіть місто та підписуйтесь.
             </p>
           </div>
 

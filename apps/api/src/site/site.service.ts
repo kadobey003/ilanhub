@@ -1,6 +1,6 @@
 import { Inject, Injectable, BadRequestException } from "@nestjs/common";
 import { and, asc, desc, eq, gte, lte, sql } from "drizzle-orm";
-import { BRAND_LOGO_PATH, BRAND_NAME, telegramPublicUrl } from "@ilanhub/shared";
+import { BRAND_LOGO_PATH, BRAND_NAME, telegramPublicUrl, resolveChannelPublicUrl, resolveChannelHandle } from "@ilanhub/shared";
 import {
   analyticsEvents,
   channelConfigs,
@@ -31,6 +31,34 @@ export type TelegramChannelsPayload = {
   totalMembers: number;
   joinedThisWeek: number;
   botUsername: string | null;
+};
+
+export type PublicSocialChannel = {
+  id: string;
+  name: string;
+  url: string;
+  handle: string | null;
+  channel: "telegram" | "viber" | "whatsapp" | "instagram" | "web";
+  projectSlug: string;
+  projectName: string;
+  cities: string[];
+  memberCount: number | null;
+  photoUrl: string | null;
+};
+
+export type SocialBots = {
+  telegram: { username: string; url: string } | null;
+  viber: { name: string; url: string | null } | null;
+  whatsapp: { name: string; url: string | null } | null;
+};
+
+export type SocialPresencePayload = {
+  presence: Record<
+    "telegram" | "instagram" | "viber" | "whatsapp" | "web",
+    PublicSocialChannel[]
+  >;
+  bots: SocialBots;
+  siteUrl: string;
 };
 
 const CHANNELS_CACHE_TTL_MS = 15 * 60 * 1000;
@@ -318,6 +346,143 @@ export class SiteService {
     return {
       data: { channels, totalMembers, joinedThisWeek, botUsername },
     };
+  }
+
+  private siteUrl(): string {
+    return (
+      process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
+      process.env.PUBLIC_URL?.trim() ||
+      "https://ilanhub.com"
+    );
+  }
+
+  private async resolveInputBots(): Promise<SocialBots> {
+    const rows = await this.db
+      .select({
+        channel: channelConfigs.channel,
+        name: channelConfigs.name,
+        config: channelConfigs.config,
+      })
+      .from(channelConfigs)
+      .where(
+        and(
+          eq(channelConfigs.purpose, "listing_input"),
+          eq(channelConfigs.isActive, true),
+        ),
+      );
+
+    const bots: SocialBots = {
+      telegram: null,
+      viber: null,
+      whatsapp: null,
+    };
+
+    const botUsername = await this.resolveBotUsername();
+    if (botUsername) {
+      bots.telegram = {
+        username: botUsername,
+        url: `https://t.me/${botUsername}`,
+      };
+    }
+
+    for (const row of rows) {
+      const cfg = (row.config ?? {}) as Record<string, unknown>;
+      const url = resolveChannelPublicUrl(row.channel, cfg, this.siteUrl());
+      if (row.channel === "viber" && !bots.viber) {
+        bots.viber = { name: row.name ?? "Viber бот", url };
+      }
+      if (row.channel === "whatsapp" && !bots.whatsapp) {
+        bots.whatsapp = { name: row.name ?? "WhatsApp бот", url };
+      }
+    }
+
+    return bots;
+  }
+
+  async getSocialPresence(): Promise<SocialPresencePayload> {
+    const emptyPresence = (): SocialPresencePayload["presence"] => ({
+      telegram: [],
+      instagram: [],
+      viber: [],
+      whatsapp: [],
+      web: [],
+    });
+
+    const channelRows = await this.db
+      .select({
+        id: channelConfigs.id,
+        name: channelConfigs.name,
+        channel: channelConfigs.channel,
+        config: channelConfigs.config,
+        projectSlug: projects.slug,
+        projectName: projects.name,
+      })
+      .from(channelConfigs)
+      .innerJoin(projects, eq(channelConfigs.projectId, projects.id))
+      .where(
+        and(
+          eq(channelConfigs.purpose, "publication"),
+          eq(channelConfigs.isActive, true),
+        ),
+      )
+      .orderBy(asc(projects.name), asc(channelConfigs.name));
+
+    const cityLinks = await this.db
+      .select({
+        channelConfigId: projectChannelCities.channelConfigId,
+        cityName: cities.name,
+      })
+      .from(projectChannelCities)
+      .innerJoin(cities, eq(projectChannelCities.cityId, cities.id));
+
+    const citiesByChannel = new Map<string, string[]>();
+    for (const row of cityLinks) {
+      const list = citiesByChannel.get(row.channelConfigId) ?? [];
+      list.push(row.cityName);
+      citiesByChannel.set(row.channelConfigId, list);
+    }
+
+    const telegramChannels = await this.getTelegramChannels();
+    const telegramById = new Map(telegramChannels.map((ch) => [ch.id, ch]));
+
+    const presence = emptyPresence();
+    const seen = new Set<string>();
+
+    for (const ch of channelRows) {
+      const cfg = (ch.config ?? {}) as Record<string, unknown>;
+      const url = resolveChannelPublicUrl(ch.channel, cfg, this.siteUrl());
+      if (!url) continue;
+
+      const dedupeKey = `${ch.channel}:${url}`;
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+
+      const tg = ch.channel === "telegram" ? telegramById.get(ch.id) : null;
+      const item: PublicSocialChannel = {
+        id: ch.id,
+        name: ch.name ?? ch.projectName,
+        url,
+        handle: resolveChannelHandle(ch.channel, cfg),
+        channel: ch.channel,
+        projectSlug: ch.projectSlug,
+        projectName: ch.projectName,
+        cities: citiesByChannel.get(ch.id) ?? [],
+        memberCount: tg?.memberCount ?? null,
+        photoUrl: tg?.photoUrl ?? null,
+      };
+
+      presence[ch.channel].push(item);
+    }
+
+    return {
+      presence,
+      bots: await this.resolveInputBots(),
+      siteUrl: this.siteUrl(),
+    };
+  }
+
+  async getSocialPresenceResponse(): Promise<{ data: SocialPresencePayload }> {
+    return { data: await this.getSocialPresence() };
   }
 
   async updateBranding(brandName: string) {

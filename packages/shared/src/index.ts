@@ -3,6 +3,7 @@ export * from "./constants.js";
 export * from "./utils.js";
 export * from "./phone.js";
 export * from "./telegram-url.js";
+export * from "./social-url.js";
 export * from "./bot-state-machine.js";
 export * from "./compat.js";
 export * from "./format-vacancy.js";

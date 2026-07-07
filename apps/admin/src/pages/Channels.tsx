@@ -29,12 +29,18 @@ const CONFIG_FIELDS: Record<string, { key: string; label: string; secret?: boole
   viber: [
     { key: "authToken", label: "Auth Token", secret: true },
     { key: "senderName", label: "Sender Name" },
+    { key: "communityUri", label: "Community URI / URL" },
+    { key: "url", label: "Public URL (опційно)" },
   ],
   whatsapp: [
     { key: "token", label: "Access Token", secret: true },
     { key: "phoneNumberId", label: "Phone Number ID" },
+    { key: "phone", label: "Phone (wa.me)" },
+    { key: "url", label: "Community URL (опційно)" },
   ],
   instagram: [
+    { key: "username", label: "Username (@profile)" },
+    { key: "url", label: "Profile URL (опційно)" },
     { key: "pageId", label: "Page ID" },
     { key: "accessToken", label: "Access Token", secret: true },
   ],

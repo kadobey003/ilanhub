@@ -14,4 +14,9 @@ export class SiteController {
   telegramChannels() {
     return this.siteService.getTelegramChannelsResponse();
   }
+
+  @Get("social-presence")
+  socialPresence() {
+    return this.siteService.getSocialPresenceResponse();
+  }
 }

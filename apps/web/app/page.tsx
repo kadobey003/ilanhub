@@ -12,13 +12,15 @@ import { AdPlacementsSection } from "@/components/landing/AdPlacementsSection";
 import { PromotionPackages } from "@/components/landing/PromotionPackages";
 import { AdvertiseSection } from "@/components/landing/AdvertiseSection";
 import { FreeMonthPromo } from "@/components/landing/FreeMonthPromo";
+import { PublishChannelsSection } from "@/components/landing/PublishChannelsSection";
+import { SocialPresenceHub } from "@/components/landing/SocialPresenceHub";
 import { JsonLd } from "@/components/seo/JsonLd";
 import {
   VerticalCards,
   StatsBar,
   CompareNote,
 } from "@/components/landing/VerticalCards";
-import { fetchTelegramChannels } from "@/lib/site-api";
+import { fetchTelegramChannels, fetchSocialPresence, type PublicSocialChannel } from "@/lib/site-api";
 import { faqJsonLd, pageMetadata } from "@/lib/seo";
 import { FAQ_ITEMS } from "@/lib/seo-content";
 import {
@@ -40,9 +42,32 @@ export const metadata: Metadata = pageMetadata({
 });
 
 export default async function HomePage() {
-  const { channels, totalMembers, joinedThisWeek, botUsername } =
-    await fetchTelegramChannels();
+  const [{ channels, totalMembers, joinedThisWeek, botUsername }, social] =
+    await Promise.all([fetchTelegramChannels(), fetchSocialPresence()]);
   const advertiseHref = advertiseContactHref(botUsername);
+
+  const telegramPresence: PublicSocialChannel[] =
+    social.presence.telegram.length > 0
+      ? social.presence.telegram
+      : channels.map((ch) => {
+          const raw = ch.channelId.trim();
+          const handle =
+            raw.startsWith("@") ? raw : /^[a-zA-Z0-9_]{4,}$/.test(raw) ? `@${raw}` : raw || null;
+          return {
+            id: ch.id,
+            name: ch.name,
+            url: ch.url,
+            handle,
+            channel: "telegram" as const,
+            projectSlug: ch.projectSlug,
+            projectName: ch.projectName,
+            cities: ch.cities,
+            memberCount: ch.memberCount,
+            photoUrl: ch.photoUrl,
+          };
+        });
+
+  const presence = { ...social.presence, telegram: telegramPresence };
 
   return (
     <div className="md:mx-auto md:max-w-6xl md:px-6">
@@ -72,7 +97,7 @@ export default async function HomePage() {
           badge="🇺🇦 Платформа для України"
           title="Оголошення, які"
           highlight="працюють на вас"
-          subtitle="Робота, Horeca, авто — одне місце для пошуку та публікації. Telegram, Viber, WhatsApp і сайт синхронізовані."
+          subtitle="Робота, Horeca, авто — одне місце. Публікація в Telegram, Viber, WhatsApp, Instagram та на сайті."
           primaryCta="Обрати напрям"
           primaryHref="#napryamy"
           secondaryCta="Подати оголошення"
@@ -91,6 +116,10 @@ export default async function HomePage() {
         />
       </div>
 
+      <div className="px-4 md:px-0">
+        <PublishChannelsSection />
+      </div>
+
       <div className="px-4 py-5 md:px-0 md:pb-8">
         <StatsBar />
       </div>
@@ -100,6 +129,14 @@ export default async function HomePage() {
       </div>
 
       <CampaignsSection campaigns={CAMPAIGNS} />
+
+      <div className="px-4 md:px-0">
+        <SocialPresenceHub
+          presence={presence}
+          bots={social.bots}
+          botUsername={botUsername}
+        />
+      </div>
 
       <section id="napryamy" className="px-4 py-6 md:px-0 md:py-12">
         <div className="mb-5 text-center md:mb-8">
@@ -132,7 +169,7 @@ export default async function HomePage() {
             {
               title: "Миттєва публікація",
               description:
-                "Після модерації — автоматично у Telegram, Viber, WhatsApp та на сайті.",
+                "Після модерації — Telegram, Viber, WhatsApp, Instagram та сайт одночасно.",
             },
             {
               title: "Мобільні боти",

@@ -23,6 +23,11 @@ const LINKS = {
     { href: "/#reklama", label: "Рекламні місця" },
     { href: "/#kampaniyi", label: "Кампанії" },
   ],
+  Канали: [
+    { href: "/#telegram", label: "Telegram" },
+    { href: "/#nashi-kanaly", label: "Instagram та ін." },
+    { href: "/#publikatsiya", label: "Де публікуємо" },
+  ],
 };
 
 export function Footer() {
@@ -35,7 +40,7 @@ export function Footer() {
               <BrandLogo height={28} />
             </Link>
             <p className="mt-4 text-sm text-slate-500 leading-relaxed">
-              Платформа оголошень для України. Telegram, Viber, WhatsApp та веб.
+              Платформа оголошень для України. Telegram, Viber, WhatsApp, Instagram та веб.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {botUrl && (
@@ -48,6 +53,12 @@ export function Footer() {
                   ✈️ Telegram
                 </a>
               )}
+              <a
+                href="/#nashi-kanaly"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+              >
+                📸 Instagram
+              </a>
               <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#7360F2] px-3 py-1.5 text-xs font-semibold text-white">
                 💜 Viber
               </span>
