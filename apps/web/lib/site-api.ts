@@ -27,6 +27,7 @@ export interface PublicSocialChannel {
   id: string;
   name: string;
   url: string;
+  channelId?: string | null;
   handle: string | null;
   channel: SocialChannelType;
   projectSlug: string;

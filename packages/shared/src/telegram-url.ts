@@ -1,7 +1,28 @@
+function isBadTelegramSiteUrl(raw: string): boolean {
+  return /(?:^|\/\/)(?:www\.)?telegram\.org(?:\/|$)/i.test(raw);
+}
+
+/** Normalize href for off-site links (t.me without scheme, protocol-relative). */
+export function normalizeExternalHref(url: string): string {
+  const raw = url.trim();
+  if (!raw) return raw;
+  if (raw.startsWith("t.me/")) return `https://${raw}`;
+  if (raw.startsWith("//")) return `https:${raw}`;
+  return raw;
+}
+
+export function isOffSiteHref(url: string): boolean {
+  const raw = url.trim();
+  if (!raw) return false;
+  return /^https?:\/\//i.test(raw) || raw.startsWith("//") || raw.startsWith("t.me/");
+}
+
 /** Build a public t.me link from Telegram channel id (@user or -100…). */
 export function telegramPublicUrl(channelId: string): string | null {
   const raw = channelId.trim();
   if (!raw) return null;
+  if (isBadTelegramSiteUrl(raw)) return null;
+  if (raw === "https://t.me" || raw === "http://t.me") return null;
   if (raw.startsWith("https://t.me/") || raw.startsWith("http://t.me/")) return raw;
   if (raw.startsWith("t.me/")) return `https://${raw}`;
   if (raw.startsWith("+") && raw.length > 4) return `https://t.me/${raw}`;
@@ -34,12 +55,12 @@ export function resolveTelegramChannelUrl(
     typeof config === "string" ? { channelId: config } : config;
 
   const candidates = [
-    cfg.url,
     cfg.inviteLink,
     cfg.invite_link,
     meta?.inviteLink,
-    cfg.username,
+    cfg.url,
     meta?.username,
+    cfg.username,
     cfg.channelId,
   ]
     .map((v) => String(v ?? "").trim())

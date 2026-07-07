@@ -35,6 +35,7 @@ export async function getLandingData(): Promise<LandingData> {
             id: ch.id,
             name: ch.name,
             url: ch.url,
+            channelId: ch.channelId,
             handle,
             channel: "telegram" as const,
             projectSlug: ch.projectSlug,

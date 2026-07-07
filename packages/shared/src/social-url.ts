@@ -7,7 +7,14 @@ export function resolveChannelPublicUrl(
   fallbackSiteUrl?: string,
 ): string | null {
   const rawUrl = String(config.url ?? config.profileUrl ?? config.communityUrl ?? "").trim();
-  if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) return rawUrl;
+  if (rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
+    if (channel === "telegram") {
+      const resolved = resolveTelegramChannelUrl(config as Record<string, unknown>);
+      if (resolved) return resolved;
+      return null;
+    }
+    return rawUrl;
+  }
 
   switch (channel) {
     case "telegram":

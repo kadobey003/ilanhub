@@ -45,6 +45,7 @@ export type PublicSocialChannel = {
   id: string;
   name: string;
   url: string;
+  channelId?: string | null;
   handle: string | null;
   channel: "telegram" | "viber" | "whatsapp" | "instagram" | "web";
   projectSlug: string;
@@ -514,10 +515,15 @@ export class SiteService {
       seen.add(dedupeKey);
 
       const tg = ch.channel === "telegram" ? telegramById.get(ch.id) : null;
+      const telegramChannelId =
+        ch.channel === "telegram"
+          ? (tg?.channelId ?? String(cfg.channelId ?? cfg.username ?? "").trim() || null)
+          : null;
       const item: PublicSocialChannel = {
         id: ch.id,
         name: ch.name ?? ch.projectName,
         url: tg?.url ?? url,
+        channelId: telegramChannelId,
         handle:
           ch.channel === "telegram"
             ? (tg?.username ?? resolveTelegramHandle(cfg))

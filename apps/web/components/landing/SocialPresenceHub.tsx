@@ -3,7 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { telegramBotUrl } from "@ilanhub/shared";
+import {
+  isOffSiteHref,
+  normalizeExternalHref,
+  resolveTelegramChannelUrl,
+  telegramBotUrl,
+} from "@ilanhub/shared";
 import type { PublicSocialChannel, SocialBots, SocialChannelType } from "@/lib/site-api";
 import { getProjectMeta } from "@/lib/project-meta";
 
@@ -27,6 +32,20 @@ const PROJECT_ACCENT: Record<string, string> = {
   auto: "from-emerald-500 to-teal-600",
 };
 
+function resolveSocialHref(item: PublicSocialChannel): string {
+  if (item.channel === "telegram") {
+    const handle = item.handle?.replace(/^@/, "") || undefined;
+    const href =
+      resolveTelegramChannelUrl({
+        url: item.url,
+        username: handle,
+        channelId: item.channelId ?? handle,
+      }) ?? item.url;
+    return normalizeExternalHref(href);
+  }
+  return normalizeExternalHref(item.url);
+}
+
 function fmtMembers(n: number | null): string {
   if (n == null) return "";
   if (n >= 10_000) return `${Math.round(n / 1000)}K+`;
@@ -45,7 +64,8 @@ function SocialCard({
 }) {
   const meta = getProjectMeta(item.projectSlug);
   const scope = item.cities.length > 0 ? item.cities.join(" · ") : "Вся Україна";
-  const external = item.url.startsWith("http");
+  const href = resolveSocialHref(item);
+  const external = isOffSiteHref(href);
 
   const inner = (
     <>
@@ -103,13 +123,13 @@ function SocialCard({
 
   if (external) {
     return (
-      <a href={item.url} target="_blank" rel="noopener noreferrer" className={cls}>
+      <a href={href} target="_blank" rel="noopener noreferrer" className={cls}>
         {inner}
       </a>
     );
   }
   return (
-    <Link href={item.url} className={cls}>
+    <Link href={href} className={cls}>
       {inner}
     </Link>
   );
