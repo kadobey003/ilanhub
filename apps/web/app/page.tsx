@@ -9,7 +9,6 @@ import { PromoTopBanner } from "@/components/landing/PromoTopBanner";
 import { AnnouncementsTicker } from "@/components/landing/AnnouncementsTicker";
 import { CampaignsSection } from "@/components/landing/CampaignsSection";
 import { AdPlacementsSection } from "@/components/landing/AdPlacementsSection";
-import { PromotionPackages } from "@/components/landing/PromotionPackages";
 import { AdvertiseSection } from "@/components/landing/AdvertiseSection";
 import { FreeMonthPromo } from "@/components/landing/FreeMonthPromo";
 import { PublishChannelsSection } from "@/components/landing/PublishChannelsSection";
@@ -29,7 +28,6 @@ import {
   ANNOUNCEMENTS,
   CAMPAIGNS,
   AD_PLACEMENTS,
-  PROMOTION_PACKAGES,
   advertiseContactHref,
 } from "@/lib/landing-promos";
 
@@ -166,8 +164,6 @@ export default async function HomePage() {
       </section>
 
       <AdPlacementsSection placements={AD_PLACEMENTS} contactHref={advertiseHref} />
-
-      <PromotionPackages packages={PROMOTION_PACKAGES} />
 
       <div className="px-4 md:px-0">
         <FeatureGrid

@@ -34,10 +34,10 @@ export function AdvertiseSection({ contactHref }: { contactHref: string }) {
                 Замовити рекламу
               </Link>
               <Link
-                href="#pakety"
+                href="#reklama"
                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/20 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
               >
-                Переглянути тарифи
+                Переглянути рекламу
               </Link>
             </div>
           </div>

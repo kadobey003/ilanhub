@@ -38,18 +38,6 @@ export type AdPlacement = {
   icon: string;
 };
 
-export type PromotionPackage = {
-  id: string;
-  name: string;
-  price: string;
-  period: string;
-  description: string;
-  features: string[];
-  highlighted?: boolean;
-  cta: string;
-  href: string;
-};
-
 export const TOP_PROMO = {
   id: FREE_MONTH_PROMO.id,
   text: `🎁 До ${FREE_MONTH_PROMO.endsLabel}: усі оголошення безкоштовно — робота, Horeca, авто`,
@@ -72,7 +60,7 @@ export const ANNOUNCEMENTS: PlatformAnnouncement[] = [
   {
     id: "a2",
     text: "VIP-підсилення — виділення в топі стрічки від 299 ₴",
-    href: "#pakety",
+    href: "#reklama",
     type: "promo",
   },
   {
@@ -103,7 +91,7 @@ export const CAMPAIGNS: PromoCampaign[] = [
       "Ваше оголошення зверху стрічки, виділене кольором та з бейджем «Топ».",
     badge: "Популярне",
     cta: "Обрати пакет",
-    href: "#pakety",
+    href: "#reklama",
     gradient: "from-amber-500 to-orange-600",
     icon: "⭐",
   },
@@ -167,57 +155,6 @@ export const AD_PLACEMENTS: AdPlacement[] = [
     priceFrom: "1 200 ₴",
     impressions: "~5K/міс",
     icon: "📌",
-  },
-];
-
-export const PROMOTION_PACKAGES: PromotionPackage[] = [
-  {
-    id: "boost",
-    name: "Підсилення",
-    price: "149",
-    period: "7 днів",
-    description: "Виділення оголошення серед інших у стрічці.",
-    features: [
-      "Кольорове виділення",
-      "Бейдж «Актуальне»",
-      "Пріоритет у пошуку",
-      "1 канал Telegram",
-    ],
-    cta: "Обрати",
-    href: "/create",
-  },
-  {
-    id: "vip",
-    name: "VIP",
-    price: "299",
-    period: "7 днів",
-    description: "Максимальна видимість для швидкого результату.",
-    features: [
-      "Топ стрічки 7 днів",
-      "Усі канали Telegram",
-      "Viber + WhatsApp",
-      "Значок «Топ»",
-      "Пріоритетна модерація",
-    ],
-    highlighted: true,
-    cta: "Найпопулярніше",
-    href: "/create",
-  },
-  {
-    id: "business",
-    name: "Бізнес",
-    price: "990",
-    period: "30 днів",
-    description: "Для компаній: бренд + кілька оголошень.",
-    features: [
-      "До 5 оголошень VIP",
-      "Банер на landing 7 днів",
-      "Логотип у профілі",
-      "Персональний менеджер",
-      "Звіт по охопленню",
-    ],
-    cta: "Зв'язатися",
-    href: "#reklama",
   },
 ];
 
