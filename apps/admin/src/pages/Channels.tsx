@@ -25,7 +25,13 @@ const CHANNEL_TYPES = [
 ];
 
 const CONFIG_FIELDS: Record<string, { key: string; label: string; secret?: boolean }[]> = {
-  telegram: [{ key: "channelId", label: "Channel ID (@username або -100...)" }],
+  telegram: [
+    { key: "channelId", label: "Channel ID (@username або -100...)" },
+    { key: "username", label: "Username (@channel)" },
+    { key: "inviteLink", label: "Invite link (t.me/+...)" },
+    { key: "url", label: "Public URL (опційно)" },
+    { key: "memberCount", label: "Підписники (ручне значення)" },
+  ],
   viber: [
     { key: "authToken", label: "Auth Token", secret: true },
     { key: "senderName", label: "Sender Name" },

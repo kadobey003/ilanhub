@@ -1,4 +1,4 @@
-import { telegramPublicUrl } from "./telegram-url.js";
+import { telegramPublicUrl, resolveTelegramChannelUrl } from "./telegram-url.js";
 
 /** Resolve a public profile / community URL from channel config. */
 export function resolveChannelPublicUrl(
@@ -11,7 +11,7 @@ export function resolveChannelPublicUrl(
 
   switch (channel) {
     case "telegram":
-      return telegramPublicUrl(String(config.channelId ?? ""));
+      return resolveTelegramChannelUrl(config as Record<string, unknown>);
     case "instagram": {
       const username = String(config.username ?? config.handle ?? "")
         .replace(/^@/, "")

@@ -52,7 +52,12 @@ export default async function HomePage() {
       : channels.map((ch) => {
           const raw = ch.channelId.trim();
           const handle =
-            raw.startsWith("@") ? raw : /^[a-zA-Z0-9_]{4,}$/.test(raw) ? `@${raw}` : raw || null;
+            ch.username ??
+            (raw.startsWith("@")
+              ? raw
+              : /^[a-zA-Z0-9_]{4,}$/.test(raw)
+                ? `@${raw}`
+                : null);
           return {
             id: ch.id,
             name: ch.name,
@@ -64,6 +69,8 @@ export default async function HomePage() {
             cities: ch.cities,
             memberCount: ch.memberCount,
             photoUrl: ch.photoUrl,
+            channelId: ch.channelId,
+            username: ch.username ?? handle,
           };
         });
 

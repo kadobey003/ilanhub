@@ -1,6 +1,13 @@
 import { Inject, Injectable, BadRequestException } from "@nestjs/common";
 import { and, asc, desc, eq, gte, lte, sql } from "drizzle-orm";
-import { BRAND_LOGO_PATH, BRAND_NAME, telegramPublicUrl, resolveChannelPublicUrl, resolveChannelHandle } from "@ilanhub/shared";
+import {
+  BRAND_LOGO_PATH,
+  BRAND_NAME,
+  resolveTelegramChannelUrl,
+  resolveTelegramHandle,
+  resolveChannelPublicUrl,
+  resolveChannelHandle,
+} from "@ilanhub/shared";
 import {
   analyticsEvents,
   channelConfigs,
@@ -18,6 +25,7 @@ export type PublicTelegramChannel = {
   name: string;
   url: string;
   channelId: string;
+  username: string | null;
   projectSlug: string;
   projectName: string;
   cities: string[];
@@ -127,9 +135,16 @@ export class SiteService {
   private async fetchChatMeta(
     token: string,
     channelId: string,
-  ): Promise<{ memberCount: number | null; photoUrl: string | null }> {
+  ): Promise<{
+    memberCount: number | null;
+    photoUrl: string | null;
+    username: string | null;
+    inviteLink: string | null;
+  }> {
     const chatId = this.normalizeChatId(channelId);
-    if (!chatId) return { memberCount: null, photoUrl: null };
+    if (!chatId) {
+      return { memberCount: null, photoUrl: null, username: null, inviteLink: null };
+    }
 
     try {
       const [countRes, chatRes] = await Promise.all([
@@ -147,13 +162,20 @@ export class SiteService {
       };
       const chatBody = (await chatRes.json()) as {
         ok: boolean;
-        result?: { photo?: { small_file_id?: string } };
+        result?: {
+          username?: string;
+          invite_link?: string;
+          photo?: { small_file_id?: string };
+        };
       };
 
       const memberCount =
         countBody.ok && typeof countBody.result === "number"
           ? countBody.result
           : null;
+
+      const username = chatBody.result?.username?.trim() || null;
+      const inviteLink = chatBody.result?.invite_link?.trim() || null;
 
       let photoUrl: string | null = null;
       const fileId = chatBody.result?.photo?.small_file_id;
@@ -170,9 +192,9 @@ export class SiteService {
         }
       }
 
-      return { memberCount, photoUrl };
+      return { memberCount, photoUrl, username, inviteLink };
     } catch {
-      return { memberCount: null, photoUrl: null };
+      return { memberCount: null, photoUrl: null, username: null, inviteLink: null };
     }
   }
 
@@ -294,25 +316,31 @@ export class SiteService {
       name: string;
       url: string;
       channelId: string;
+      username: string | null;
       projectSlug: string;
       projectName: string;
       cities: string[];
+      config: Record<string, unknown>;
     }> = [];
 
     for (const ch of channelRows) {
       const cfg = (ch.config ?? {}) as Record<string, unknown>;
-      const channelId = String(cfg.channelId ?? "").trim();
-      const url = telegramPublicUrl(channelId);
-      if (!url || seen.has(channelId)) continue;
-      seen.add(channelId);
+      const channelId = String(cfg.channelId ?? cfg.username ?? "").trim();
+      const url = resolveTelegramChannelUrl(cfg);
+      if (!url) continue;
+      const dedupe = `${channelId}:${url}`;
+      if (seen.has(dedupe)) continue;
+      seen.add(dedupe);
       pending.push({
         id: ch.id,
         name: ch.name ?? channelId,
         url,
         channelId,
+        username: resolveTelegramHandle(cfg),
         projectSlug: ch.projectSlug,
         projectName: ch.projectName,
         cities: citiesByChannel.get(ch.id) ?? [],
+        config: cfg,
       });
     }
 
@@ -320,14 +348,39 @@ export class SiteService {
       ? await Promise.all(
           pending.map((ch) => this.fetchChatMeta(token, ch.channelId)),
         )
-      : pending.map(() => ({ memberCount: null, photoUrl: null }));
+      : pending.map(() => ({
+          memberCount: null,
+          photoUrl: null,
+          username: null,
+          inviteLink: null,
+        }));
 
-    const result: PublicTelegramChannel[] = pending.map((ch, i) => ({
-      ...ch,
-      memberCount: metas[i]!.memberCount,
-      photoUrl: metas[i]!.photoUrl,
-      joinedThisWeek: null,
-    }));
+    const result: PublicTelegramChannel[] = pending.map((ch, i) => {
+      const meta = metas[i]!;
+      const url =
+        resolveTelegramChannelUrl(ch.config, meta) ??
+        resolveTelegramChannelUrl(ch.channelId, meta) ??
+        ch.url;
+      const manualCount = Number(ch.config.memberCount);
+      const memberCount =
+        Number.isFinite(manualCount) && manualCount > 0
+          ? manualCount
+          : meta.memberCount;
+
+      return {
+        id: ch.id,
+        name: ch.name,
+        url,
+        channelId: ch.channelId,
+        username: resolveTelegramHandle(ch.config, meta),
+        projectSlug: ch.projectSlug,
+        projectName: ch.projectName,
+        cities: ch.cities,
+        memberCount,
+        photoUrl: meta.photoUrl,
+        joinedThisWeek: null,
+      };
+    });
 
     await this.recordMemberSnapshots(result);
 
@@ -450,7 +503,10 @@ export class SiteService {
 
     for (const ch of channelRows) {
       const cfg = (ch.config ?? {}) as Record<string, unknown>;
-      const url = resolveChannelPublicUrl(ch.channel, cfg, this.siteUrl());
+      const url =
+        ch.channel === "telegram"
+          ? resolveTelegramChannelUrl(cfg)
+          : resolveChannelPublicUrl(ch.channel, cfg, this.siteUrl());
       if (!url) continue;
 
       const dedupeKey = `${ch.channel}:${url}`;
@@ -461,8 +517,11 @@ export class SiteService {
       const item: PublicSocialChannel = {
         id: ch.id,
         name: ch.name ?? ch.projectName,
-        url,
-        handle: resolveChannelHandle(ch.channel, cfg),
+        url: tg?.url ?? url,
+        handle:
+          ch.channel === "telegram"
+            ? (tg?.username ?? resolveTelegramHandle(cfg))
+            : resolveChannelHandle(ch.channel, cfg),
         channel: ch.channel,
         projectSlug: ch.projectSlug,
         projectName: ch.projectName,

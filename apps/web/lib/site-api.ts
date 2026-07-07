@@ -5,6 +5,7 @@ export interface PublicTelegramChannel {
   name: string;
   url: string;
   channelId: string;
+  username?: string | null;
   projectSlug: string;
   projectName: string;
   cities: string[];

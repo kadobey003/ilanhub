@@ -1,5 +1,9 @@
 import Image from "next/image";
-import { telegramBotUrl } from "@ilanhub/shared";
+import {
+  telegramBotUrl,
+  resolveTelegramChannelUrl,
+  resolveTelegramHandle,
+} from "@ilanhub/shared";
 import type { PublicTelegramChannel } from "@/lib/site-api";
 import { getProjectMeta } from "@/lib/project-meta";
 import { TelegramChannelsCarousel } from "./TelegramChannelsCarousel";
@@ -10,8 +14,7 @@ const PROJECT_ACCENT: Record<string, string> = {
   auto: "from-emerald-500 to-teal-600",
 };
 
-function fmtMembers(n: number | null): string {
-  if (n == null) return "—";
+function fmtMembers(n: number): string {
   if (n >= 1_000_000) {
     return `${(n / 1_000_000).toLocaleString("uk-UA", { maximumFractionDigits: 1 })}M`;
   }
@@ -22,11 +25,14 @@ function fmtMembers(n: number | null): string {
   return n.toLocaleString("uk-UA");
 }
 
-function channelHandle(channelId: string): string | null {
-  const raw = channelId.trim();
-  if (raw.startsWith("@")) return raw;
-  if (/^[a-zA-Z0-9_]{4,}$/.test(raw)) return `@${raw}`;
-  return null;
+function channelSubscribeUrl(channel: PublicTelegramChannel): string {
+  return (
+    resolveTelegramChannelUrl({
+      channelId: channel.channelId,
+      username: channel.username ?? undefined,
+      url: channel.url,
+    }) ?? channel.url
+  );
 }
 
 function TelegramIcon({ className = "" }: { className?: string }) {
@@ -70,6 +76,64 @@ function ChannelAvatar({
   );
 }
 
+function MemberStats({
+  count,
+  joinedThisWeek,
+  rank,
+}: {
+  count: number | null;
+  joinedThisWeek: number | null;
+  rank: number;
+}) {
+  if (count != null && count > 0) {
+    return (
+      <div className="rounded-xl bg-gradient-to-br from-slate-50 via-white to-sky-50 p-3 ring-1 ring-slate-100">
+        <div className="flex items-end justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-2xl font-black tabular-nums leading-none tracking-tight text-slate-900">
+                {fmtMembers(count)}
+              </p>
+              <span className="mb-0.5 rounded-md bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold text-sky-700">
+                👥
+              </span>
+            </div>
+            <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              підписників
+            </p>
+            {joinedThisWeek != null && joinedThisWeek > 0 && (
+              <p className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />+
+                {joinedThisWeek.toLocaleString("uk-UA")} цього тижня
+              </p>
+            )}
+          </div>
+          {rank <= 3 && (
+            <span className="rounded-lg bg-gradient-to-br from-amber-100 to-amber-50 px-2.5 py-1 text-xs font-black text-amber-800 ring-1 ring-amber-200">
+              #{rank}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 p-3 ring-1 ring-emerald-100">
+      <div className="flex items-center gap-2">
+        <span className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm">
+          <span className="absolute h-full w-full animate-ping rounded-full bg-emerald-400/30" />
+          <span className="relative h-2.5 w-2.5 rounded-full bg-emerald-500" />
+        </span>
+        <div>
+          <p className="text-sm font-bold text-emerald-800">Активний канал</p>
+          <p className="text-[11px] font-medium text-emerald-600">Приєднуйтесь першими</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ChannelCard({
   channel,
   rank,
@@ -83,13 +147,16 @@ function ChannelCard({
 }) {
   const meta = getProjectMeta(channel.projectSlug);
   const accent = PROJECT_ACCENT[channel.projectSlug] ?? "from-sky-400 to-blue-500";
-  const handle = channelHandle(channel.channelId);
+  const handle =
+    channel.username ??
+    resolveTelegramHandle({ channelId: channel.channelId, url: channel.url });
+  const subscribeUrl = channelSubscribeUrl(channel);
   const scope =
     channel.cities.length > 0 ? channel.cities.join(" · ") : "Вся Україна";
 
   return (
     <a
-      href={channel.url}
+      href={subscribeUrl}
       target="_blank"
       rel="noopener noreferrer"
       style={{ animationDelay: `${delay}ms` }}
@@ -100,7 +167,7 @@ function ChannelCard({
       <div className={`h-1.5 bg-gradient-to-r ${accent}`} />
 
       {featured && (
-        <span className="absolute right-3 top-4 z-10 flex items-center gap-1 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-950 shadow-sm animate-shimmer">
+        <span className="absolute right-3 top-4 z-10 flex items-center gap-1 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-950 shadow-sm">
           ⭐ Топ
         </span>
       )}
@@ -116,9 +183,7 @@ function ChannelCard({
               {channel.name}
             </h3>
             {handle && (
-              <p className="mt-0.5 truncate text-xs font-medium text-[#229ED9]">
-                {handle}
-              </p>
+              <p className="mt-0.5 truncate text-xs font-semibold text-[#229ED9]">{handle}</p>
             )}
           </div>
         </div>
@@ -128,25 +193,12 @@ function ChannelCard({
           <span className="line-clamp-1">{scope}</span>
         </p>
 
-        <div className="mt-4 flex items-end justify-between gap-2 border-t border-slate-100 pt-3">
-          <div>
-            <p className="text-2xl font-extrabold tabular-nums leading-none text-slate-900">
-              {fmtMembers(channel.memberCount)}
-            </p>
-            <p className="mt-0.5 text-[11px] font-medium text-slate-400">
-              підписників
-            </p>
-            {channel.joinedThisWeek != null && channel.joinedThisWeek > 0 && (
-              <p className="mt-1 text-[11px] font-semibold text-emerald-600">
-                +{channel.joinedThisWeek.toLocaleString("uk-UA")} цього тижня
-              </p>
-            )}
-          </div>
-          {rank <= 3 && channel.memberCount != null && (
-            <span className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold text-slate-500">
-              #{rank}
-            </span>
-          )}
+        <div className="mt-4">
+          <MemberStats
+            count={channel.memberCount}
+            joinedThisWeek={channel.joinedThisWeek}
+            rank={rank}
+          />
         </div>
 
         <span className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#229ED9] py-2.5 text-sm font-bold text-white shadow-md shadow-sky-300/40 transition group-hover:bg-[#1a8bc4]">

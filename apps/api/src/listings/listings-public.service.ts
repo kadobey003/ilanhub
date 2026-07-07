@@ -17,7 +17,7 @@ import {
   type Database,
 } from "@ilanhub/database";
 import { DRIZZLE } from "../common/constants.js";
-import { telegramPublicUrl } from "@ilanhub/shared";
+import { telegramPublicUrl, resolveTelegramChannelUrl } from "@ilanhub/shared";
 import { RegionsService } from "../regions/regions.service.js";
 
 const PUBLIC_STATUSES = ["published", "approved"] as const;
@@ -153,8 +153,8 @@ export class ListingsPublicService {
       })
       .map((ch) => {
         const cfg = (ch.config ?? {}) as Record<string, unknown>;
-        const channelId = String(cfg.channelId ?? "");
-        const url = telegramPublicUrl(channelId);
+        const channelId = String(cfg.channelId ?? cfg.username ?? "");
+        const url = resolveTelegramChannelUrl(cfg);
         if (!url) return null;
         return {
           name: ch.name ?? channelId,
