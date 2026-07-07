@@ -2,10 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { telegramBotUrl } from "@ilanhub/shared";
 import type { PublicSocialChannel, SocialBots, SocialChannelType } from "@/lib/site-api";
-import { FALLBACK_SOCIAL } from "@/lib/social-presence";
 import { getProjectMeta } from "@/lib/project-meta";
 
 const TABS: {
@@ -33,33 +32,6 @@ function fmtMembers(n: number | null): string {
   if (n >= 10_000) return `${Math.round(n / 1000)}K+`;
   if (n >= 1000) return `${(n / 1000).toLocaleString("uk-UA", { maximumFractionDigits: 1 })}K`;
   return n.toLocaleString("uk-UA");
-}
-
-function fallbackToSocial(
-  items: (typeof FALLBACK_SOCIAL)[keyof typeof FALLBACK_SOCIAL],
-  channel: SocialChannelType,
-): PublicSocialChannel[] {
-  return items.map((item) => ({
-    id: item.id,
-    name: item.name,
-    url: item.url,
-    handle: item.handle,
-    channel,
-    projectSlug: item.projectSlug,
-    projectName: item.projectName,
-    cities: item.cities,
-    memberCount: null,
-    photoUrl: null,
-  }));
-}
-
-function mergePresence(
-  api: PublicSocialChannel[],
-  channel: SocialChannelType,
-): PublicSocialChannel[] {
-  if (api.length > 0) return api;
-  if (channel === "telegram") return [];
-  return fallbackToSocial(FALLBACK_SOCIAL[channel], channel);
 }
 
 function SocialCard({
@@ -145,21 +117,21 @@ function SocialCard({
 
 function BotStrip({ bots }: { bots: SocialBots }) {
   const items = [
-    bots.telegram && {
+    bots.telegram?.url && {
       label: "Telegram бот",
       icon: "✈️",
       href: bots.telegram.url,
       sub: `@${bots.telegram.username}`,
       color: "bg-[#229ED9]",
     },
-    bots.viber && {
+    bots.viber?.url && {
       label: bots.viber.name,
       icon: "💜",
       href: bots.viber.url,
       sub: "Подати оголошення",
       color: "bg-[#7360F2]",
     },
-    bots.whatsapp && {
+    bots.whatsapp?.url && {
       label: bots.whatsapp.name,
       icon: "💬",
       href: bots.whatsapp.url,
@@ -169,7 +141,7 @@ function BotStrip({ bots }: { bots: SocialBots }) {
   ].filter(Boolean) as {
     label: string;
     icon: string;
-    href: string | null;
+    href: string;
     sub: string;
     color: string;
   }[];
@@ -182,8 +154,13 @@ function BotStrip({ bots }: { bots: SocialBots }) {
         Подати оголошення через ботів
       </p>
       <div className="flex flex-wrap justify-center gap-2">
-        {items.map((item) => {
-          const body = (
+        {items.map((item) => (
+          <a
+            key={item.label}
+            href={item.href}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <span
               className={`inline-flex items-center gap-2 rounded-xl ${item.color} px-4 py-2.5 text-sm font-semibold text-white shadow-md transition hover:opacity-90`}
             >
@@ -195,16 +172,8 @@ function BotStrip({ bots }: { bots: SocialBots }) {
                 </span>
               </span>
             </span>
-          );
-          if (item.href) {
-            return (
-              <a key={item.label} href={item.href} target="_blank" rel="noopener noreferrer">
-                {body}
-              </a>
-            );
-          }
-          return <span key={item.label}>{body}</span>;
-        })}
+          </a>
+        ))}
       </div>
     </div>
   );
@@ -219,20 +188,6 @@ export function SocialPresenceHub({
   bots: SocialBots;
   botUsername: string | null;
 }) {
-  const [tab, setTab] = useState<SocialChannelType>("telegram");
-
-  const merged = useMemo(
-    () =>
-      Object.fromEntries(
-        TABS.map((t) => [t.id, mergePresence(presence[t.id], t.id)]),
-      ) as Record<SocialChannelType, PublicSocialChannel[]>,
-    [presence],
-  );
-
-  const activeTab = TABS.find((t) => t.id === tab)!;
-  const items = merged[tab];
-  const totalCount = TABS.reduce((n, t) => n + merged[t.id].length, 0);
-
   const resolvedBots = useMemo(() => {
     if (bots.telegram || !botUsername) return bots;
     return {
@@ -240,6 +195,30 @@ export function SocialPresenceHub({
       telegram: { username: botUsername, url: telegramBotUrl(botUsername, "create") },
     };
   }, [bots, botUsername]);
+
+  const activeTabs = useMemo(
+    () => TABS.filter((t) => presence[t.id].length > 0),
+    [presence],
+  );
+
+  const totalCount = activeTabs.reduce((n, t) => n + presence[t.id].length, 0);
+  const hasBots =
+    Boolean(resolvedBots.telegram?.url) ||
+    Boolean(resolvedBots.viber?.url) ||
+    Boolean(resolvedBots.whatsapp?.url);
+
+  const [tab, setTab] = useState<SocialChannelType>("telegram");
+
+  useEffect(() => {
+    if (activeTabs.length > 0 && !activeTabs.some((t) => t.id === tab)) {
+      setTab(activeTabs[0]!.id);
+    }
+  }, [activeTabs, tab]);
+
+  if (totalCount === 0 && !hasBots) return null;
+
+  const activeTab = activeTabs.find((t) => t.id === tab) ?? activeTabs[0];
+  const items = activeTab ? presence[activeTab.id] : [];
 
   return (
     <section id="nashi-kanaly" className="px-4 py-6 md:px-0 md:py-10">
@@ -256,67 +235,57 @@ export function SocialPresenceHub({
         </p>
         {totalCount > 0 && (
           <p className="mt-2 text-sm font-semibold text-brand">
-            {totalCount}+ активних майданчиків
+            {totalCount} активних майданчиків
           </p>
         )}
       </div>
 
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 scrollbar-hide md:mx-0 md:flex-wrap md:justify-center md:overflow-visible md:px-0">
-        {TABS.map((t) => {
-          const count = merged[t.id].length;
-          const active = tab === t.id;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-                active
-                  ? "text-white shadow-lg"
-                  : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
-              }`}
-              style={active ? { backgroundColor: t.color } : undefined}
-            >
-              <span>{t.icon}</span>
-              {t.label}
-              {count > 0 && (
-                <span
-                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                    active ? "bg-white/25" : "bg-slate-100 text-slate-500"
+      {activeTabs.length > 0 && (
+        <>
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 scrollbar-hide md:mx-0 md:flex-wrap md:justify-center md:overflow-visible md:px-0">
+            {activeTabs.map((t) => {
+              const count = presence[t.id].length;
+              const active = activeTab?.id === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTab(t.id)}
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+                    active
+                      ? "text-white shadow-lg"
+                      : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
                   }`}
+                  style={active ? { backgroundColor: t.color } : undefined}
                 >
-                  {count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+                  <span>{t.icon}</span>
+                  {t.label}
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                      active ? "bg-white/25" : "bg-slate-100 text-slate-500"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
-      <div className="mt-5">
-        {items.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-            <p className="text-3xl">{activeTab.icon}</p>
-            <p className="mt-2 font-semibold text-slate-700">
-              {activeTab.label} — незабаром
-            </p>
-            <p className="mt-1 text-sm text-slate-500">
-              Підключіть канал у адмін-панелі або слідкуйте за оновленнями
-            </p>
+          <div className="mt-5">
+            <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-hide snap-x-mandatory md:mx-0 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:px-0 lg:grid-cols-3">
+              {items.map((item) => (
+                <SocialCard
+                  key={item.id}
+                  item={item}
+                  cta={activeTab!.cta}
+                  accent={PROJECT_ACCENT[item.projectSlug] ?? "from-sky-400 to-blue-500"}
+                />
+              ))}
+            </div>
           </div>
-        ) : (
-          <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 scrollbar-hide snap-x-mandatory md:mx-0 md:grid md:grid-cols-2 md:gap-4 md:overflow-visible md:px-0 lg:grid-cols-3">
-            {items.map((item) => (
-              <SocialCard
-                key={item.id}
-                item={item}
-                cta={activeTab.cta}
-                accent={PROJECT_ACCENT[item.projectSlug] ?? "from-sky-400 to-blue-500"}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+        </>
+      )}
 
       <BotStrip bots={resolvedBots} />
     </section>
