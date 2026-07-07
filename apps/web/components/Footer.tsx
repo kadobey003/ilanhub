@@ -18,6 +18,11 @@ const LINKS = {
     { href: "/register", label: "Реєстрація" },
     { href: "/create", label: "Подати оголошення" },
   ],
+  Реклама: [
+    { href: "/#pakety", label: "Тарифи VIP" },
+    { href: "/#reklama", label: "Рекламні місця" },
+    { href: "/#kampaniyi", label: "Кампанії" },
+  ],
 };
 
 export function Footer() {

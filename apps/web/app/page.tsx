@@ -5,6 +5,13 @@ import { FeatureGrid } from "@/components/landing/FeatureGrid";
 import { CTASection } from "@/components/landing/CTASection";
 import { FaqSection } from "@/components/landing/FaqSection";
 import { TelegramChannelsShowcase } from "@/components/landing/TelegramChannelsShowcase";
+import { PromoTopBanner } from "@/components/landing/PromoTopBanner";
+import { AnnouncementsTicker } from "@/components/landing/AnnouncementsTicker";
+import { CampaignsSection } from "@/components/landing/CampaignsSection";
+import { AdPlacementsSection } from "@/components/landing/AdPlacementsSection";
+import { PromotionPackages } from "@/components/landing/PromotionPackages";
+import { AdvertiseSection } from "@/components/landing/AdvertiseSection";
+import { FreeMonthPromo } from "@/components/landing/FreeMonthPromo";
 import { JsonLd } from "@/components/seo/JsonLd";
 import {
   VerticalCards,
@@ -14,11 +21,20 @@ import {
 import { fetchTelegramChannels } from "@/lib/site-api";
 import { faqJsonLd, pageMetadata } from "@/lib/seo";
 import { FAQ_ITEMS } from "@/lib/seo-content";
+import {
+  TOP_PROMO,
+  FREE_MONTH_PROMO,
+  ANNOUNCEMENTS,
+  CAMPAIGNS,
+  AD_PLACEMENTS,
+  PROMOTION_PACKAGES,
+  advertiseContactHref,
+} from "@/lib/landing-promos";
 
 export const metadata: Metadata = pageMetadata({
   title: "UAREKLAMHUB — Робота, Horeca та оголошення в Україні",
   description:
-    "Вакансії по всій Україні. Подайте оголошення через Telegram, Viber, WhatsApp або сайт. Horeca, офіс, IT, авто.",
+    "До 31 липня — усі оголошення безкоштовно! Вакансії, Horeca, авто через Telegram, Viber, WhatsApp або сайт.",
   path: "/",
   absoluteTitle: true,
 });
@@ -26,6 +42,7 @@ export const metadata: Metadata = pageMetadata({
 export default async function HomePage() {
   const { channels, totalMembers, joinedThisWeek, botUsername } =
     await fetchTelegramChannels();
+  const advertiseHref = advertiseContactHref(botUsername);
 
   return (
     <div className="md:mx-auto md:max-w-6xl md:px-6">
@@ -38,6 +55,15 @@ export default async function HomePage() {
           totalMembers={totalMembers}
           joinedThisWeek={joinedThisWeek}
           botUsername={botUsername}
+        />
+      </div>
+
+      <div className="px-4 pt-3 md:px-0 md:pt-4">
+        <PromoTopBanner
+          id={TOP_PROMO.id}
+          text={TOP_PROMO.text}
+          href={TOP_PROMO.href}
+          cta={TOP_PROMO.cta}
         />
       </div>
 
@@ -54,9 +80,26 @@ export default async function HomePage() {
         />
       </div>
 
+      <div className="px-4 py-5 md:px-0 md:py-6">
+        <FreeMonthPromo
+          endsAt={FREE_MONTH_PROMO.endsAt}
+          endsLabel={FREE_MONTH_PROMO.endsLabel}
+          title={FREE_MONTH_PROMO.title}
+          subtitle={FREE_MONTH_PROMO.subtitle}
+          cta={FREE_MONTH_PROMO.cta}
+          href={FREE_MONTH_PROMO.href}
+        />
+      </div>
+
       <div className="px-4 py-5 md:px-0 md:pb-8">
         <StatsBar />
       </div>
+
+      <div className="px-4 pb-4 md:px-0">
+        <AnnouncementsTicker items={ANNOUNCEMENTS} />
+      </div>
+
+      <CampaignsSection campaigns={CAMPAIGNS} />
 
       <section id="napryamy" className="px-4 py-6 md:px-0 md:py-12">
         <div className="mb-5 text-center md:mb-8">
@@ -77,6 +120,10 @@ export default async function HomePage() {
       <section className="px-4 py-4 md:px-0 md:py-8">
         <CompareNote />
       </section>
+
+      <AdPlacementsSection placements={AD_PLACEMENTS} contactHref={advertiseHref} />
+
+      <PromotionPackages packages={PROMOTION_PACKAGES} />
 
       <div className="px-4 md:px-0">
         <FeatureGrid
@@ -114,11 +161,13 @@ export default async function HomePage() {
 
       <FaqSection />
 
+      <AdvertiseSection contactHref={advertiseHref} />
+
       <div className="px-4 pb-6 md:px-0 md:pb-24">
         <CTASection
-          title="Готові почати?"
-          subtitle="Зареєструйтесь безкоштовно або подайте перше оголошення за 5 хвилин."
-          cta="Подати оголошення"
+          title="Не пропустіть акцію!"
+          subtitle="До 31 липня публікація оголошень безкоштовна. Подайте за 5 хвилин."
+          cta="Подати безкоштовно"
           href="/create"
         />
       </div>
